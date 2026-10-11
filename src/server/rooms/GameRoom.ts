@@ -45,6 +45,18 @@ export const TIMINGS = {
   idleCleanupAny: 48 * 60 * 60_000,
 };
 
+/** Shortened timers used by the integration tests (FAST_TIMERS=1). */
+const FAST_TIMINGS: typeof TIMINGS = {
+  authTimeout: 4_000,
+  tradeTimeout: 5_000,
+  tradeDisconnectGrace: 1_500,
+  afkSkip: 2_500,
+  hostTransfer: 2_500,
+  botDelay: 120,
+  idleCleanupEmpty: 6 * 60 * 60_000,
+  idleCleanupAny: 48 * 60 * 60_000,
+};
+
 interface Member {
   id: string;
   name: string;
@@ -90,16 +102,18 @@ interface Bucket {
 
 type LobbyResult = string | null;
 
-const RATE = { perSec: 12, burst: 30, maxStrikes: 50 };
+const RATE = { perSec: 15, burst: 40, maxStrikes: 200 };
 
 export class GameRoom extends DurableObject<Env> {
   private room: RoomRecord | null = null;
   private game: GameState | null = null;
   private buckets = new WeakMap<WebSocket, Bucket>();
   private acks = new Map<string, Map<string, ServerMessage>>();
+  private tm: typeof TIMINGS;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    this.tm = env.FAST_TIMERS === '1' ? FAST_TIMINGS : TIMINGS;
     ctx.blockConcurrencyWhile(async () => {
       this.room = (await ctx.storage.get<RoomRecord>('room')) ?? null;
       this.game = (await ctx.storage.get<GameState>('game')) ?? null;
@@ -189,16 +203,21 @@ export class GameRoom extends DurableObject<Env> {
       this.send(ws, { t: 'error', error: 'bad-message' });
       return;
     }
-    if (!this.allow(ws)) return;
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw) as ClientMessage;
     } catch {
-      this.send(ws, { t: 'error', error: 'bad-message' });
+      if (this.allow(ws)) this.send(ws, { t: 'error', error: 'bad-message' });
       return;
     }
     if (!msg || typeof msg !== 'object' || typeof (msg as { t?: unknown }).t !== 'string') {
-      this.send(ws, { t: 'error', error: 'bad-message' });
+      if (this.allow(ws)) this.send(ws, { t: 'error', error: 'bad-message' });
+      return;
+    }
+    if (!this.allow(ws)) {
+      // Always answer requests so clients never wait for a lost ack.
+      const id = (msg as { id?: unknown }).id;
+      if (typeof id === 'string' && id.length <= 64) this.send(ws, { t: 'ack', id, ok: false, error: 'rate-limited' });
       return;
     }
     const att = (ws.deserializeAttachment() ?? { pid: null, at: 0 }) as SocketAttachment;
@@ -243,6 +262,15 @@ export class GameRoom extends DurableObject<Env> {
       const seen = this.acks.get(member.id)?.get(msg.id);
       if (seen) {
         this.send(ws, seen);
+        return;
+      }
+      if (msg.t === 'lobby' && msg.body?.op === 'leave') {
+        // Acknowledge first: leaving closes this very socket.
+        const ack: ServerMessage = { t: 'ack', id: msg.id, ok: true };
+        this.send(ws, ack);
+        await this.handleLobby(member, msg.body);
+        this.touch();
+        await this.commit();
         return;
       }
       let error: string | null;
@@ -301,7 +329,7 @@ export class GameRoom extends DurableObject<Env> {
     // Close sockets that never authenticated.
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (att && !att.pid && now - att.at > TIMINGS.authTimeout) {
+      if (att && !att.pid && now - att.at > this.tm.authTimeout) {
         try {
           ws.close(4001, 'auth timeout');
         } catch {
@@ -312,7 +340,7 @@ export class GameRoom extends DurableObject<Env> {
 
     // Idle cleanup.
     const anyConnected = room.members.some((m) => !m.isBot && this.socketsFor(m.id).length > 0);
-    const idleLimit = anyConnected ? TIMINGS.idleCleanupAny : TIMINGS.idleCleanupEmpty;
+    const idleLimit = anyConnected ? this.tm.idleCleanupAny : this.tm.idleCleanupEmpty;
     if (now - room.lastActivity > idleLimit) {
       await this.destroy();
       return;
@@ -338,14 +366,14 @@ export class GameRoom extends DurableObject<Env> {
     const trade = game.turn.trade;
 
     if (trade) {
-      if (now - t.tradeAt >= TIMINGS.tradeTimeout) {
+      if (now - t.tradeAt >= this.tm.tradeTimeout) {
         systemCancelTrade(game, 'timeout');
         this.afterGameChange();
         return true;
       }
       for (const pid of [trade.proposerId, trade.targetId]) {
         const m = room.members.find((x) => x.id === pid);
-        if (m && !m.isBot && m.disconnectedAt && now - m.disconnectedAt >= TIMINGS.tradeDisconnectGrace) {
+        if (m && !m.isBot && m.disconnectedAt && now - m.disconnectedAt >= this.tm.tradeDisconnectGrace) {
           systemCancelTrade(game, 'disconnect');
           this.afterGameChange();
           return true;
@@ -361,7 +389,7 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (current && !current.isBot && current.disconnectedAt) {
       const since = Math.max(current.disconnectedAt, t.turnAt);
-      if (now - since >= TIMINGS.afkSkip) {
+      if (now - since >= this.tm.afkSkip) {
         systemSkipTurn(game, 'afk');
         this.afterGameChange();
         return true;
@@ -394,7 +422,7 @@ export class GameRoom extends DurableObject<Env> {
   private maybeTransferHost(now: number): boolean {
     const room = this.room!;
     const host = room.members.find((m) => m.id === room.hostId);
-    if (host && !host.isBot && host.disconnectedAt && now - host.disconnectedAt >= TIMINGS.hostTransfer) {
+    if (host && !host.isBot && host.disconnectedAt && now - host.disconnectedAt >= this.tm.hostTransfer) {
       const next = room.members.find((m) => !m.isBot && m.id !== host.id && this.socketsFor(m.id).length > 0);
       if (next) {
         room.hostId = next.id;
@@ -427,33 +455,33 @@ export class GameRoom extends DurableObject<Env> {
     const room = this.room;
     if (!room) return;
     const now = Date.now();
-    const times: number[] = [room.lastActivity + TIMINGS.idleCleanupAny];
+    const times: number[] = [room.lastActivity + this.tm.idleCleanupAny];
     const anyConnected = room.members.some((m) => !m.isBot && this.socketsFor(m.id).length > 0);
-    if (!anyConnected) times.push(room.lastActivity + TIMINGS.idleCleanupEmpty);
+    if (!anyConnected) times.push(room.lastActivity + this.tm.idleCleanupEmpty);
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (att && !att.pid) times.push(att.at + TIMINGS.authTimeout);
+      if (att && !att.pid) times.push(att.at + this.tm.authTimeout);
     }
     const host = room.members.find((m) => m.id === room.hostId);
     if (host?.disconnectedAt && room.members.some((m) => !m.isBot && m.id !== host.id)) {
-      times.push(host.disconnectedAt + TIMINGS.hostTransfer);
+      times.push(host.disconnectedAt + this.tm.hostTransfer);
     }
     const game = this.game;
     if (room.status === 'playing' && game && game.status === 'playing') {
       const tr = game.turn.trade;
       if (tr) {
-        times.push(room.timers.tradeAt + TIMINGS.tradeTimeout);
+        times.push(room.timers.tradeAt + this.tm.tradeTimeout);
         for (const pid of [tr.proposerId, tr.targetId]) {
           const m = room.members.find((x) => x.id === pid);
-          if (m?.disconnectedAt) times.push(m.disconnectedAt + TIMINGS.tradeDisconnectGrace);
+          if (m?.disconnectedAt) times.push(m.disconnectedAt + this.tm.tradeDisconnectGrace);
         }
       }
       if (game.turn.deadline) times.push(game.turn.deadline);
       const current = room.members.find((m) => m.id === game.turn.playerId);
-      if (current?.disconnectedAt) times.push(Math.max(current.disconnectedAt, room.timers.turnAt) + TIMINGS.afkSkip);
+      if (current?.disconnectedAt) times.push(Math.max(current.disconnectedAt, room.timers.turnAt) + this.tm.afkSkip);
       if (!current) times.push(now + 500);
       const actorId = tr ? tr.awaitingId : game.turn.playerId;
-      if (room.members.find((m) => m.id === actorId)?.isBot) times.push(now + TIMINGS.botDelay);
+      if (room.members.find((m) => m.id === actorId)?.isBot) times.push(now + this.tm.botDelay);
     }
     const next = Math.max(now + 50, Math.min(...times));
     const existing = await this.ctx.storage.getAlarm();
@@ -803,7 +831,7 @@ export class GameRoom extends DurableObject<Env> {
       })),
       gamesPlayed: room.gamesPlayed,
       version: room.version,
-      afkSkipSec: TIMINGS.afkSkip / 1000,
+      afkSkipSec: this.tm.afkSkip / 1000,
     };
   }
 
@@ -854,8 +882,6 @@ export class GameRoom extends DurableObject<Env> {
         } catch {
           /* ignore */
         }
-      } else {
-        this.send(ws, { t: 'error', error: 'rate-limited' });
       }
       return false;
     }

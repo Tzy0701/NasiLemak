@@ -155,7 +155,9 @@
   @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold;
 }
 @utility table-felt {
-  background: radial-gradient(ellipse at center, #3e8a37 0%, #2f6d2a 55%, #234f20 100%);
+  background-color: #2f6d2a;
+  background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 10px, rgba(255, 255, 255, 0) 10px 22px),
+    radial-gradient(ellipse at center, #3e8a37 0%, #2f6d2a 55%, #234f20 100%);
 }
 @utility table-wood {
   background: linear-gradient(180deg, #8c5a33, #6e4426);

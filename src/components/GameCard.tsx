@@ -12,6 +12,8 @@ const SIZE: Record<CardSize, { w: string; title: string; sub: string; radius: st
   lg: { w: 'w-[15rem]', title: 'text-xl', sub: 'text-sm', radius: 'rounded-3xl', border: 'border-[6px]' },
 };
 
+const STRIPES = 'repeating-linear-gradient(115deg, rgba(255,255,255,0.12) 0 6px, rgba(255,255,255,0) 6px 14px)';
+
 type Theme = { frame: string; band: string; text: string };
 const THEMES: Record<string, Theme> = {
   ingredient: { frame: '#4f9a45', band: '#4f9a45', text: '#fff' },
@@ -108,7 +110,11 @@ export function GameCard({
           {size !== 'xs' && (
             <div
               className={`leaf-stripes flex items-center justify-center px-1 py-[0.2em] text-center font-display font-semibold leading-tight ${s.title}`}
-              style={{ background: theme.band, color: theme.text }}
+              style={
+                theme.band.startsWith('linear')
+                  ? { backgroundImage: `${STRIPES}, ${theme.band}`, color: theme.text }
+                  : { backgroundColor: theme.band, color: theme.text }
+              }
             >
               <span className="truncate">{name}</span>
             </div>

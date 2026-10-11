@@ -32,7 +32,10 @@ function errorJson(error: string, status: number): Response {
 // Best-effort per-isolate rate limiting (room-code guessing / spam). Durable
 // Objects add their own per-socket limits on top.
 const hits = new Map<string, { n: number; reset: number }>();
-function rateLimited(key: string, limit: number, windowMs: number): boolean {
+/** Integration tests hammer the API from one IP; FAST_TIMERS relaxes the limits there. */
+let limitScale = 1;
+function rateLimited(key: string, baseLimit: number, windowMs: number): boolean {
+  const limit = baseLimit * limitScale;
   const now = Date.now();
   const h = hits.get(key);
   if (!h || h.reset < now) {
@@ -78,6 +81,7 @@ function roomStub(env: Env, code: string) {
 }
 
 export async function handleApi(request: Request, env: Env): Promise<Response> {
+  limitScale = env.FAST_TIMERS === '1' ? 100 : 1;
   const url = new URL(request.url);
   const ip = request.headers.get('CF-Connecting-IP') ?? 'local';
   const parts = url.pathname.split('/').filter(Boolean); // ['api', ...]

@@ -329,7 +329,8 @@ function startTurn(state: GameState, index: number): void {
     deadline: null,
   };
   state.lastReveal = null;
-  const drawn = drawCards(state, state.config.drawPerTurn);
+  const reduction = state.turn.number === 1 ? (state.config.firstTurnDrawReduction ?? 0) : 0;
+  const drawn = drawCards(state, Math.max(0, state.config.drawPerTurn - reduction));
   p.hand.push(...drawn);
   state.turn.drawnIds = drawn.map((c) => c.id);
   log(state, { key: 'turn-start', actor: p.id });

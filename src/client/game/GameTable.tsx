@@ -15,7 +15,7 @@ import { Toasts, pushError, pushToast } from '../ui/toast';
 import { ChaseCrowFlow, CardDetail, type Flow, OfficerTake, PlayCardFlow, RecipePicker, TradeComposer, TradeResponse } from './Flows';
 import { Results } from './Results';
 import { CenterPiles, OpponentSeat } from './TablePieces';
-import { canChaseCrow, canMake, canTrade, formatLog, sortHand, tableInfo, useMediaQuery } from './helpers';
+import { canChaseCrow, canMake, canTrade, formatLog, kindName, sortHand, tableInfo, useMediaQuery } from './helpers';
 
 function useCountdown(deadline: number | null): number | null {
   const [now, setNow] = useState(Date.now());
@@ -106,6 +106,19 @@ export function GameTable() {
   }, [myTurn, flow]);
 
   const hand = useMemo(() => sortHand(v.hand), [v.hand]);
+  // Identical cards are stacked with a ×N badge so phones need less scrolling.
+  const groups = useMemo(() => {
+    const out: { card: (typeof hand)[number]; count: number; isNew: boolean }[] = [];
+    for (const c of hand) {
+      const last = out[out.length - 1];
+      const fresh = v.turn.drawnIds.includes(c.id);
+      if (last && last.card.kind === c.kind) {
+        last.count++;
+        last.isNew ||= fresh;
+      } else out.push({ card: c, count: 1, isNew: fresh });
+    }
+    return out;
+  }, [hand, v.turn.drawnIds]);
   const current = v.players.find((p) => p.id === v.turn.playerId);
   const currentMember = current ? members.get(current.id) : undefined;
   const tr = v.turn.trade;
@@ -161,9 +174,9 @@ export function GameTable() {
         )}
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1">
         {/* Table */}
-        <div className="table-felt flex min-h-0 flex-1 flex-col">
+        <div className="table-felt flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Opponents */}
           <section
             className={`no-scrollbar flex gap-2 overflow-x-auto px-3 py-2 ${roomy ? 'flex-wrap justify-center' : ''}`}
@@ -231,19 +244,20 @@ export function GameTable() {
 
             {/* Action bar */}
             {v.status === 'playing' && myTurn && (
-              <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto px-1 pb-1" data-testid="action-bar">
-                <button className="btn-leaf btn-sm shrink-0" disabled={!canMake(info)} onClick={() => setFlow({ type: 'make' })} data-testid="action-make">
-                  {t('game.make')}
-                </button>
-                <button className="btn-gold btn-sm shrink-0" disabled={!canTrade(info)} onClick={() => setFlow({ type: 'trade' })} data-testid="action-trade">
-                  {t('game.trade')}
-                </button>
-                {me?.crow && (
-                  <button className="btn-ghost btn-sm shrink-0" disabled={!canChaseCrow(info)} onClick={() => setFlow({ type: 'chase' })} data-testid="action-chase">
-                    {t('game.chaseCrow')}
+              <div className="mt-2 flex items-start gap-2 px-1 pb-1" data-testid="action-bar">
+                <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                  <button className="btn-leaf btn-sm" disabled={!canMake(info)} onClick={() => setFlow({ type: 'make' })} data-testid="action-make">
+                    {t('game.make')}
                   </button>
-                )}
-                <div className="flex-1" />
+                  <button className="btn-gold btn-sm" disabled={!canTrade(info)} onClick={() => setFlow({ type: 'trade' })} data-testid="action-trade">
+                    {t('game.trade')}
+                  </button>
+                  {me?.crow && (
+                    <button className="btn-ghost btn-sm" disabled={!canChaseCrow(info)} onClick={() => setFlow({ type: 'chase' })} data-testid="action-chase">
+                      {t('game.chaseCrow')}
+                    </button>
+                  )}
+                </div>
                 <button className="btn-primary btn-sm shrink-0" disabled={!!pending} onClick={endTurn} data-testid="action-end-turn">
                   {t('game.endTurn')}
                 </button>
@@ -254,16 +268,25 @@ export function GameTable() {
             {/* Hand */}
             <div className="no-scrollbar flex snap-x gap-1.5 overflow-x-auto px-1 pb-2 pt-3 sm:justify-center sm:gap-2" data-testid="hand">
               {hand.length === 0 && <p className="py-6 text-sm italic text-kopi-700">{t('game.noCards')}</p>}
-              {hand.map((c) => (
-                <div key={c.id} className="relative snap-start">
+              {groups.map(({ card: c, count, isNew }) => (
+                <div key={c.id} className="relative snap-start" data-testid="hand-stack">
+                  {count > 1 && (
+                    <div className="absolute inset-0 translate-x-1.5 translate-y-1 rounded-2xl border-4 bg-santan-200" style={{ borderColor: 'rgba(0,0,0,0.15)' }} aria-hidden="true" />
+                  )}
                   <GameCard
                     kind={c.kind}
-                    size={roomy ? 'md' : 'sm'}
+                    size="md"
                     onClick={() => setFlow({ type: 'detail', card: c })}
-                    className={v.turn.drawnIds.includes(c.id) ? 'animate-deal' : ''}
+                    className={isNew ? 'animate-deal' : ''}
                     testId="hand-card"
+                    label={`${kindName(c.kind)}${count > 1 ? ` ×${count}` : ''}`}
                   />
-                  {v.turn.drawnIds.includes(c.id) && (
+                  {count > 1 && (
+                    <span className="absolute -right-1 bottom-2 rounded-full bg-kopi-900 px-2 py-0.5 font-display text-sm font-bold text-white shadow" data-testid="stack-count">
+                      ×{count}
+                    </span>
+                  )}
+                  {isNew && (
                     <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-sambal-500 px-1.5 text-[0.6rem] font-bold text-white shadow">NEW</span>
                   )}
                 </div>

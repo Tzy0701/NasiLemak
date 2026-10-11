@@ -15,17 +15,17 @@ function errorText(e: unknown): string {
 
 export function Cover() {
   return (
-    <div className="relative mx-auto h-56 w-full max-w-md sm:h-64" aria-hidden="true">
+    <div className="relative mx-auto h-56 w-full max-w-[22rem] sm:h-64 sm:max-w-md" aria-hidden="true">
       <div className="absolute inset-x-6 bottom-2 h-10 rounded-[50%] bg-leaf-900/20 blur-md" />
       <div className="absolute left-1/2 top-2 w-44 -translate-x-1/2 animate-float sm:w-52">
         <CardArt kind="nasiLemak" className="h-full w-full drop-shadow-xl" />
       </div>
       {(
         [
-          ['nasi', '-rotate-12 left-0 top-16'],
+          ['nasi', '-rotate-12 left-2 top-16'],
           ['telur', 'rotate-6 left-16 top-28'],
           ['sambal', '-rotate-3 right-16 top-28'],
-          ['timun', 'rotate-12 right-0 top-16'],
+          ['timun', 'rotate-12 right-2 top-16'],
         ] as const
       ).map(([k, cls]) => (
         <div key={k} className={`absolute ${cls}`}>
@@ -82,7 +82,7 @@ export function HomePage() {
 
   return (
     <div className="min-h-full">
-      <header className="table-felt leaf-stripes relative overflow-hidden pb-10 pt-6 text-center text-white">
+      <header className="table-felt relative overflow-hidden pb-10 pt-6 text-center text-white">
         <div className="absolute right-3 top-3 flex gap-2">
           <button className="btn-ghost btn-sm !bg-white/15 !text-white !border-white/30" onClick={() => setModal('settings')}>
             {t('common.settings')}

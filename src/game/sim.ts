@@ -2,8 +2,9 @@
  * Headless full-game simulation used by tests and scripts/simulate.ts.
  */
 import { type BotKind, botDecide } from './bots/bots';
-import type { GameConfig, GameMode } from './rules/config';
-import { applyAction, createGame } from './rules/engine';
+import { BASE_INGREDIENTS, isIngredient } from './cards/catalog';
+import { type GameConfig, type GameMode, RECIPE_SIZE } from './rules/config';
+import { applyAction, createGame, findRecipe } from './rules/engine';
 import { type RngState, seedFromNumber } from './rng';
 import type { GameState } from './types';
 import { projectGame } from './view';
@@ -34,6 +35,10 @@ export interface SimResult {
   fliesPlayed: number;
   crowTurnsBlocked: number;
   makeBlockedByShortage: number;
+  /** Turns where the active player held 5+ base ingredients but no 5-different set. */
+  shortageTurns: number;
+  /** Turns where some base ingredient had zero cards left in draw + discard piles. */
+  drySupplyTurns: number;
   errors: string[];
   state: GameState;
 }
@@ -51,6 +56,8 @@ export function simulateGame(opts: SimOptions): SimResult {
   let fliesPlayed = 0;
   let crowTurnsBlocked = 0;
   let makeBlockedByShortage = 0;
+  let shortageTurns = 0;
+  let drySupplyTurns = 0;
   let lastTurn = -1;
   let safety = 0;
 
@@ -63,6 +70,10 @@ export function simulateGame(opts: SimOptions): SimResult {
       lastTurn = state.turn.number;
       const ap = state.players.find((p) => p.id === state.turn.playerId)!;
       if (state.crows.some((c) => c.holderId === ap.id)) crowTurnsBlocked++;
+      const ings = ap.hand.filter((c) => isIngredient(c.kind));
+      if (ings.length >= RECIPE_SIZE && !findRecipe(ap.hand, RECIPE_SIZE)) shortageTurns++;
+      const supply = new Set([...state.drawPile, ...state.discardPile].map((c) => c.kind));
+      if (BASE_INGREDIENTS.some((k) => !supply.has(k))) drySupplyTurns++;
     }
     // Whoever must act: the trade responder, otherwise the active player.
     const tr = state.turn.trade;
@@ -106,6 +117,8 @@ export function simulateGame(opts: SimOptions): SimResult {
     fliesPlayed,
     crowTurnsBlocked,
     makeBlockedByShortage,
+    shortageTurns,
+    drySupplyTurns,
     errors,
     state,
   };

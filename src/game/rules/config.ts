@@ -28,6 +28,12 @@ export interface GameConfig {
   length: GameLength;
   /** Distinct ingredients needed with the Mak Cik Nasi Lemak card. */
   makcikIngredients: number;
+  /**
+   * House rule (Custom only): the starting player draws this many FEWER
+   * cards on the very first turn, to offset the first-player advantage that
+   * the simulations show in short games. 0 = official.
+   */
+  firstTurnDrawReduction: number;
   /** Optional per-turn timer in seconds (0 = off). Custom mode only. */
   turnTimerSec: number;
   minPlayers: number;
@@ -64,6 +70,7 @@ export const OFFICIAL_BASE: GameConfig = Object.freeze({
   targetPacks: 5,
   length: 'short',
   makcikIngredients: 3,
+  firstTurnDrawReduction: 0,
   turnTimerSec: 0,
   minPlayers: 2,
   maxPlayers: 5,
@@ -100,6 +107,7 @@ export const OFFICIAL_RENDANG: GameConfig = Object.freeze({
   targetPacks: 5,
   length: 'short',
   makcikIngredients: 3,
+  firstTurnDrawReduction: 0,
   turnTimerSec: 0,
   minPlayers: 3,
   maxPlayers: 7,

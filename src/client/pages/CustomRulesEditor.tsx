@@ -108,6 +108,13 @@ export function CustomRulesEditor({ config, editable, problems, onChange }: Prop
           onSet={(v) => set({ targetPacks: v })}
           testId="stepper-target"
         />
+        <Stepper
+          label={t('custom.firstTurnDrawReduction')}
+          value={config.firstTurnDrawReduction}
+          {...CUSTOM_BOUNDS.firstTurnDrawReduction}
+          editable={editable}
+          onSet={(v) => set({ firstTurnDrawReduction: v })}
+        />
         <Stepper label={t('custom.makcik')} value={config.makcikIngredients} {...CUSTOM_BOUNDS.makcikIngredients} editable={editable} onSet={(v) => set({ makcikIngredients: v })} />
         <Stepper
           label={t('custom.timer')}

@@ -58,7 +58,7 @@ export function Lobby() {
   return (
     <div className="min-h-full pb-28">
       <Toasts />
-      <header className="table-felt leaf-stripes px-4 pb-6 pt-4 text-white">
+      <header className="table-felt px-4 pb-6 pt-4 text-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <button className="font-display text-xl font-bold" onClick={() => navigate('/')}>
             Nasi Lemak <span className="text-kunyit-300">Online</span>

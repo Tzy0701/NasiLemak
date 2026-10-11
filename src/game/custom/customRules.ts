@@ -27,6 +27,7 @@ export const CUSTOM_BOUNDS = {
   targetPacks: { min: 2, max: 20 },
   makcikIngredients: { min: 2, max: 4 },
   turnTimerSec: { min: 0, max: 600 },
+  firstTurnDrawReduction: { min: 0, max: 5 },
   players: { min: 2, max: 7 },
 } satisfies Record<string, Bounds>;
 
@@ -63,6 +64,7 @@ export function sanitizeCustomConfig(input: unknown, base: GameConfig = OFFICIAL
   c.makcikIngredients = clampInt(src.makcikIngredients, CUSTOM_BOUNDS.makcikIngredients, base.makcikIngredients);
   c.turnTimerSec = clampInt(src.turnTimerSec, CUSTOM_BOUNDS.turnTimerSec, base.turnTimerSec);
   if (c.turnTimerSec > 0 && c.turnTimerSec < 20) c.turnTimerSec = 20;
+  c.firstTurnDrawReduction = clampInt(src.firstTurnDrawReduction, CUSTOM_BOUNDS.firstTurnDrawReduction, base.firstTurnDrawReduction ?? 0);
   c.length = src.length === 'long' ? 'long' : src.length === 'short' ? 'short' : base.length;
   c.minPlayers = CUSTOM_BOUNDS.players.min;
   c.maxPlayers = CUSTOM_BOUNDS.players.max;
@@ -142,9 +144,10 @@ export function customPreset(id: CustomPresetId): GameConfig {
         handSize: 7,
         drawPerTurn: 3,
         movesPerTurn: 3,
-        targetPacks: 4,
+        targetPacks: 5,
         length: 'short',
         turnTimerSec: 90,
+        firstTurnDrawReduction: 1,
         minPlayers: 2,
         maxPlayers: 7,
       };
@@ -164,13 +167,14 @@ export function customPreset(id: CustomPresetId): GameConfig {
           fan: 5,
           sioyen: 4,
         },
-        crows: 3,
+        crows: 2,
         nlOnePack: 12,
         nlTwoPack: 10,
         handSize: 7,
-        drawPerTurn: 2,
-        movesPerTurn: 3,
+        drawPerTurn: 3,
+        movesPerTurn: 4,
         targetPacks: 5,
+        firstTurnDrawReduction: 2,
         length: 'short',
         minPlayers: 2,
         maxPlayers: 7,

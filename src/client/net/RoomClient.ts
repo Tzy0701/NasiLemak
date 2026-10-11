@@ -55,6 +55,8 @@ export class RoomClient {
   }
 
   start(): void {
+    // Safe to call again after dispose() (React StrictMode mounts effects twice).
+    this.disposed = false;
     this.connect();
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.wake);
