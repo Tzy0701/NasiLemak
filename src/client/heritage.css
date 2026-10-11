@@ -45,6 +45,18 @@ body {
 .modal-header .btn-ghost { background: #14291edb; color: #efd6a7; }
 .heritage-modal { border-width: 2px; }
 .heritage-modal > div:last-child { border-color: #baa170; }
+.modal-body, .modal-header h2, .modal-footer { overflow-wrap: anywhere; }
+.modal-footer > button { max-width: 100%; }
+.card-reference-grid { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 12px; }
+.trade-wants { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+.ingredient-choice-grid { grid-template-columns: repeat(auto-fit, minmax(4.4rem, 1fr)); }
+.trade-want { min-height: 4.5rem; }
+.standing-row { grid-template-columns: 1.25rem 30px minmax(0, 1fr) auto; }
+.standing-cards { grid-row: 2; grid-column: 3 / -1; }
+.standing-row [data-testid='standing-packs'] { grid-row: 1; grid-column: 4; }
+.lobby-page main { grid-template-columns: minmax(0, 1fr); }
+.lobby-member-info { flex-basis: 8rem; }
+.custom-stepper { overflow-wrap: anywhere; }
 
 /* Cards share the original game's identifiable framework, with raster artwork. */
 .game-card {
@@ -56,36 +68,40 @@ body {
 }
 .card-xs { --card-width: 2.3rem; border-width: 2px; border-radius: 6px; }
 .card-sm { --card-width: 4.4rem; --title-size: .54rem; --sub-size: .38rem; --effect-size: .35rem; border-radius: 8px; }
-.card-lg { --card-width: 15rem; --title-size: 1.25rem; --sub-size: .85rem; --effect-size: .85rem; border-width: 5px; border-radius: 18px; }
-.card-face { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: inherit;
+.card-lg { --card-width: 15rem; --title-size: 1.25rem; --sub-size: .85rem; --effect-size: .85rem; max-width: 100%; border-width: 5px; border-radius: 18px; }
+.card-face { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; aspect-ratio: 2 / 3; min-height: 0; overflow: hidden; border-radius: inherit;
   background: #fff6e2 url('/art/heritage-v1/paper.png') center / 400px; border: 2px solid var(--card-color); }
 .card-back-image { width: 100%; height: 100%; display: block; object-fit: fill; }
-.card-hidden .card-face { border: 0; }
-.card-ribbon { position: absolute; z-index: 2; top: 5%; left: 5%; width: 90%; text-align: center; }
+.card-hidden .card-face { display: block; border: 0; }
+.card-action .card-face { padding-top: 5%; }
+.card-ribbon { position: relative; z-index: 2; width: 90%; margin: 0 auto; text-align: center; }
 .card-ribbon > span { display: block; padding: 3% 1%; color: #fff3d8; background: var(--card-color);
   border: 1px solid #e4bf6c; clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%);
-  font: 600 var(--title-size)/1.08 var(--font-display); }
-.card-ribbon small { display: block; margin-top: 3%; color: var(--card-color); font: 800 var(--sub-size)/1.1 var(--font-sans); }
-.card-picture { position: absolute; inset: 9% 2% 19%; }
-.card-action .card-picture { top: 27%; bottom: 24%; }
-.card-main-art { position: absolute; width: 100%; height: auto; aspect-ratio: 1; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-.card-ingredient .card-picture { inset: 13% 2% 23%; }
-.ingredient-name { position: absolute; bottom: 7%; left: 0; width: 100%; padding: 0 3%; text-align: center; }
-.ingredient-name strong { display: block; font: 600 var(--title-size)/1.05 var(--font-display); }
-.ingredient-name small { display: block; margin-top: 3%; font: 700 var(--sub-size)/1 var(--font-sans); color: var(--card-color); }
+  font: 600 var(--title-size)/1.2 var(--font-display); }
+.card-ribbon small { display: block; margin-top: 2%; color: var(--card-color); font: 800 var(--sub-size)/1.25 var(--font-sans); }
+.card-picture { position: relative; min-height: 0; margin: 0 2%; container-type: size; }
+.card-main-art { position: absolute; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.card-ingredient .card-face { grid-template-rows: minmax(0, 1fr) auto; padding: 12% 0 7%; }
+.ingredient-name { position: relative; width: 100%; padding: 0 3%; text-align: center; }
+.ingredient-name strong { display: block; font: 600 var(--title-size)/1.2 var(--font-display); }
+.ingredient-name small { display: block; margin-top: 3%; font: 700 var(--sub-size)/1.25 var(--font-sans); color: var(--card-color); }
 .ingredient-corners .corner { position: absolute; width: 17%; height: auto; z-index: 1; }
+.ingredient-corners { position: absolute; inset: 0; pointer-events: none; }
 .corner-0 { left: 2%; top: 1%; }.corner-1 { right: 2%; top: 1%; }.corner-2 { left: 2%; bottom: 1%; }.corner-3 { right: 2%; bottom: 1%; }
-.card-effect { position: absolute; bottom: 0; left: 0; width: 100%; min-height: 22%; padding: 5% 4%; display: flex; align-items: center; justify-content: center;
+.card-effect { position: relative; width: 100%; padding: 5% 4%; display: flex; align-items: center; justify-content: center;
   background: var(--card-color); color: #fff6e0; font: 700 var(--effect-size)/1.2 var(--font-sans); text-align: center; }
-.card-ingredient[data-kind='rendang'] .ingredient-name { bottom: 21%; }
-.card-ingredient[data-kind='rendang'] .card-picture { bottom: 32%; }
-.card-ingredient[data-kind='rendang'] .card-effect { min-height: 17%; padding: 3% 2%; }
-.card-xs .card-picture { inset: 4%; }.card-xs .corner { width: 15%; }
-.pack-value { position: absolute; left: 12%; right: 12%; bottom: 8%; background: #f2c76e; color: #312210; border: 1px solid #bf9440;
+.card-ingredient[data-kind='rendang'] .card-face { grid-template-rows: minmax(0, 1fr) auto auto; padding-bottom: 0; }
+.card-ingredient[data-kind='rendang'] .ingredient-name { padding-bottom: 3%; }
+.card-ingredient[data-kind='rendang'] .card-effect { padding: 3% 2%; }
+.card-scoring-face { grid-template-rows: minmax(0, 1fr) auto; padding: 5% 0 8%; }
+.card-xs .card-face:not(.card-scoring-face) { grid-template-rows: minmax(0, 1fr); padding: 4% 0; }
+.card-xs.card-hidden .card-face { padding: 0; }
+.card-xs .corner { width: 15%; }
+.pack-value { position: relative; width: 76%; justify-self: center; background: #f2c76e; color: #312210; border: 1px solid #bf9440;
   border-radius: 20px; padding: 2% 0; text-align: center; font: 700 var(--title-size)/1.2 var(--font-display); }
-.card-xs .pack-value { left: auto; right: 1%; bottom: 1%; min-width: 45%; font-size: .65rem; padding: 0 2%; }
-.two-parcels .card-main-art { width: 68%; left: 36%; transform: translate(-50%, -50%) rotate(-8deg); }
-.card-second-parcel { position: absolute; width: 68%; height: auto; aspect-ratio: 1; top: 50%; left: 64%; transform: translate(-50%, -48%) rotate(8deg); }
+.card-xs .pack-value { width: auto; min-width: 45%; font-size: .65rem; padding: 0 2%; }
+.two-parcels .card-main-art { width: min(68cqw, 85cqh); height: min(68cqw, 85cqh); left: 36%; transform: translate(-50%, -50%) rotate(-8deg); }
+.card-second-parcel { position: absolute; width: min(68cqw, 85cqh); height: min(68cqw, 85cqh); top: 50%; left: 64%; transform: translate(-50%, -48%) rotate(8deg); }
 .card-fly-overlay { position: absolute; z-index: 4; inset: 4%; background: #17231b33; border-radius: 8px; }
 .card-check { position: absolute; z-index: 5; top: 0; right: 0; width: 22%; aspect-ratio: 1; display: grid; place-items: center;
   background: #f5cf6d; border: 1px solid #bd9144; border-radius: 50%; color: #32230e; font-weight: 900; font-size: var(--title-size); }
@@ -98,7 +114,11 @@ body {
 
 /* The game surface is one scene with live seats, piles, hand and controls above it. */
 .game-shell { background: #10291c; color: #fff1d7; }
-.game-topbar { background: #15291ee8 url('/art/heritage-v1/table-desktop.png') center bottom / 1600px; border-bottom: 1px solid #bc9756; min-height: 60px; }
+.connected-room { height: 100dvh; display: flex; flex-direction: column; }
+.connection-status { flex-shrink: 0; position: relative; z-index: 40; }
+.connected-room > .game-shell { flex: 1; min-height: 0; height: auto; }
+.connected-room > .lobby-page { flex: 1; }
+.game-topbar { background: #15291ee8 url('/art/heritage-v1/table-desktop.png') center bottom / 1600px; border-bottom: 1px solid #bc9756; min-height: 60px; flex-shrink: 0; }
 .game-brand { font-family: var(--font-display); color: #f9e2ac; font-weight: 600; font-size: 1.05rem; line-height: 1; }
 .turn-banner { background: #f4d48b; color: #2b2117; border: 1px solid #c39647; box-shadow: 0 2px 8px #0006; }
 .game-layout { position: relative; }
@@ -111,17 +131,25 @@ body {
 .opponent-hand-fan { display: none; }
 .opponent-scorecards { min-height: 0; }
 .opponent-scorecards .card-xs { --card-width: 1.8rem; }
-.table-centre { padding-top: 10px; padding-bottom: 14px; }
+.table-centre { flex: 1 0 auto; min-height: min-content; padding-top: 10px; padding-bottom: 14px; }
+.table-board { scrollbar-width: thin; scrollbar-color: #bd944a #15291c; }
 .center-piles { max-width: 100%; }
+.table-centre > div { max-width: 100%; overflow-wrap: anywhere; }
+[data-testid='absent-banner'], [data-testid='trade-banner'] { flex-wrap: wrap; }
 .pile-label { color: #ffe9bd; background: #15271bdc; border: 1px solid #a08548; border-radius: 6px; padding: 2px 8px; margin-top: 5px; font-size: .68rem; }
 .pile-count { background: #f2d28b; color: #3b2818; border: 1px solid #95713d; }
 .player-area { background: #251d13e8 url('/art/heritage-v1/table-desktop.png') center bottom / 2000px;
   color: #fff2d8; border: 1px solid #b09150; border-radius: 16px; display: flex; flex-direction: column; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
 .player-area .text-kopi-700 { color: #f0d5a5; }
 .player-summary { order: 0; min-height: 46px; }
+.player-name { max-width: 32%; }
 .player-area [data-testid='hand'] { order: 1; padding-top: 10px; padding-bottom: 12px; justify-content: flex-start; }
 .player-area [data-testid='action-bar'] { order: 2; align-items: center; border-top: 1px solid #8e744640; padding-top: 9px; padding-bottom: 4px; margin-top: 0; }
 .player-area > p { order: 3; }
+.hand-stack { display: flex; flex-direction: column; }
+.hand-card-tags { order: -1; display: flex; align-items: center; gap: 2px; min-height: 18px; padding: 0 2px 2px; position: relative; z-index: 1; }
+.moves-indicator { flex-shrink: 0; }
+.empty-pile { width: 4.4rem; aspect-ratio: 2 / 3; }
 .hand-caption { color: #e9d1a2; font-size: .65rem; margin-left: auto; padding-left: 4px; flex-shrink: 0; }
 .moves-indicator { display: inline-flex; align-items: center; gap: 5px; }
 .move-leaf { width: 14px; height: 21px; display: inline-block; border-radius: 100% 0 100% 0; border: 1px solid #b5cc80; background: #8daf53; transform: rotate(15deg); }
@@ -136,18 +164,15 @@ body {
 .game-log .recipe-icons .raster-art { background-color: #fff0d5; }
 
 @media (min-width: 1024px) {
+  .lobby-page main { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
   .game-stage { padding: 0 28px 16px; }
-  .opponents[data-count='3'] { height: 110px; }
-  .opponents[data-count='3'] .opponent-seat { position: absolute; z-index: 2; width: 13.6rem; }
-  .opponents[data-count='3'] .opponent-seat:nth-child(1) { top: 14px; left: 50%; transform: translateX(-50%); }
-  .opponents[data-count='3'] .opponent-seat:nth-child(2) { top: 155px; left: 24px; }
-  .opponents[data-count='3'] .opponent-seat:nth-child(3) { top: 155px; right: 24px; }
   .opponent-hand-fan { display: flex; padding-left: 18px; margin-top: 5px; }
   .opponent-hand-fan .card-xs { --card-width: 1.35rem; margin-left: -4px; }
-  .player-area [data-testid='hand'] { justify-content: center; }
+  .player-area [data-testid='hand'] { justify-content: safe center; }
   .player-area [data-testid='hand'] .card-md { --card-width: 7.5rem; --title-size: .8rem; --effect-size: .58rem; }
   .player-area [data-testid='action-bar'] { padding-left: 10px; padding-right: 10px; }
   .table-centre .card-sm { --card-width: 5.1rem; --title-size: .63rem; --effect-size: .41rem; }
+  .table-centre .empty-pile { width: 5.1rem; }
 }
 @media (max-width: 1023px) {
   .game-brand { display: none; }
@@ -163,6 +188,10 @@ body {
   .opponent-seat [data-testid='crow-badge'] .raster-art { width: 18px; height: 18px; }
 }
 @media (max-width: 639px) {
+  .home-page [data-testid='join-form'] .grid { grid-template-columns: minmax(0, 1fr); }
+  .card-reference-grid { grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: 10px 6px; }
+  .lobby-member-info { flex-basis: calc(100% - 64px); }
+  .lobby-member-actions { width: 100%; justify-content: flex-end; }
   body { background-image: url('/art/heritage-v1/table-mobile.png'); background-attachment: scroll; }
   .home-hero { padding-top: 48px; padding-bottom: 38px; }
   .home-cover { height: 175px; }
@@ -179,10 +208,11 @@ body {
   .opponent-seat .player-avatar { width: 27px !important; height: 27px !important; }
   .opponent-seat .text-xs { font-size: .58rem; }
   .opponent-seat .text-sm { font-size: .66rem; }
-  .center-pile-row { display: grid; grid-template-columns: repeat(2, auto); gap: 12px 22px; }
+  .center-pile-row { display: flex; gap: 10px; }
   .center-pile-row[data-piles='3'] { display: flex; gap: 18px; }
   .table-centre { gap: 6px; padding: 6px 0; }
   .table-centre .card-sm { --card-width: 3.8rem; --title-size: .47rem; --sub-size: .35rem; --effect-size: .33rem; }
+  .table-centre .empty-pile { width: 3.8rem; }
   .pile-label { margin-top: 3px; padding: 1px 5px; font-size: .53rem; }
   .pile-count { font-size: .6rem; }
   .player-summary { gap: 5px; min-height: 38px; }
@@ -197,13 +227,20 @@ body {
   .player-area [data-testid='action-bar'] > div { gap: 5px; }
   .moves-indicator { gap: 3px; }.move-leaf { width: 10px; height: 15px; }
   .card-md { --card-width: 5.5rem; --title-size: .62rem; --effect-size: .43rem; }
-  [data-testid='card-reference'] .grid { gap: 10px 4px; }
 }
 @media (max-height: 740px) and (max-width: 639px) {
   .table-centre .card-sm { --card-width: 3rem; --title-size: .4rem; --effect-size: .25rem; }
-  .center-pile-row { gap: 6px 20px; }
+  .table-centre .empty-pile { width: 3rem; }
+  .center-pile-row { gap: 10px; }
   .player-area [data-testid='hand'] .card-md { --card-width: 4.6rem; --title-size: .53rem; --effect-size: .36rem; }
   .game-topbar { min-height: 42px; }
+}
+@media (max-width: 360px) {
+  .custom-stepper { flex-wrap: wrap; }
+  .custom-stepper > span.flex-1 { flex-basis: calc(100% - 48px); }
+  .custom-stepper > div { margin-left: auto; }
+  .player-area [data-testid='action-bar'] > div:first-child { flex-basis: 100%; }
+  .player-area [data-testid='action-bar'] .moves-indicator { margin-left: auto; }
 }
 @media (max-height: 500px) {
   .game-topbar { min-height: 38px; }
@@ -214,8 +251,10 @@ body {
   .opponents[data-count='3'] { height: auto; }
   .opponents[data-count='3'] .opponent-seat { position: static; transform: none; }
   .table-centre .card-sm { --card-width: 2.8rem; }
+  .table-centre .card-sm .card-effect, .table-centre .card-sm .card-ribbon small { display: none; }
+  .table-centre .empty-pile { width: 2.8rem; }
   .center-pile-row { display: flex; gap: 16px; }
-  .player-area [data-testid='hand'] .card-md { --card-width: 3.5rem; --title-size: .4rem; --effect-size: .28rem; }
+  .player-area [data-testid='hand'] .card-md { --card-width: 3.5rem; --title-size: .4rem; --sub-size: .3rem; --effect-size: .28rem; }
   .player-summary { min-height: 24px; }
   .player-summary .player-avatar { width: 24px !important; height: 24px !important; }
   .player-area [data-testid='hand'] { padding: 4px 2px; }
@@ -223,7 +262,8 @@ body {
 }
 
 .avatar-picker { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
-.avatar-picker button { display:grid; place-items:center; padding:4px; border:2px solid transparent; border-radius:50%; cursor:pointer; }
+.avatar-picker button { display:grid; grid-template-columns: minmax(0, 1fr); min-width: 0; place-items:center; padding:4px; border:2px solid transparent; border-radius:50%; cursor:pointer; }
+.avatar-picker .player-avatar { width: 100% !important; max-width: 60px; height: auto !important; aspect-ratio: 1; }
 .avatar-picker button[aria-pressed="true"] { border-color:#8b5523; background:#f7cc65; box-shadow:0 0 0 2px #d6a94e; }
 .avatar-picker button:focus-visible { outline:3px solid #205b4a; outline-offset:2px; }
 .avatar-picker button:disabled { opacity:.6; cursor:wait; }

@@ -93,20 +93,20 @@ export function Lobby() {
       </header>
 
       <main className="mx-auto grid max-w-5xl gap-4 px-4 pt-4 lg:grid-cols-[1fr_1.3fr]">
-        <section className="panel p-4" data-testid="player-list">
+        <section className="panel min-w-0 p-4" data-testid="player-list">
           <h2 className="mb-3 text-xl font-semibold">{t('lobby.players', { n })}</h2>
           <ul className="space-y-2">
             {room.members.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-santan-100 px-3 py-2" data-testid="member">
+              <li key={m.id} className="lobby-member flex min-w-0 flex-wrap items-center gap-3 rounded-2xl bg-santan-100 px-3 py-2" data-testid="member">
                 <Avatar id={m.id} name={m.name} size={48} bot={m.isBot} avatar={m.avatar} />
-                <div className="min-w-0 flex-1">
+                <div className="lobby-member-info min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 truncate font-bold">
                     {m.isHost && <CrownIcon />}
                     <span className="truncate">{m.name}</span>
                     {m.id === room.youId && <span className="chip bg-kunyit-300 text-kopi-900">{t('common.you')}</span>}
                     {m.isBot && <span className="chip bg-santan-300 text-kopi-800">{t('common.bot')}</span>}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-kopi-700">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-kopi-700">
                     <DotIcon on={m.connected} /> {m.connected ? t('common.online') : t('common.offline')}
                     {m.isHost ? (
                       <span className="chip bg-kunyit-300/70">{t('common.host')}</span>
@@ -118,7 +118,7 @@ export function Lobby() {
                   </div>
                 </div>
                 {isHost && m.id !== room.youId && (
-                  <div className="flex shrink-0 gap-1">
+                  <div className="lobby-member-actions ml-auto flex shrink-0 gap-1">
                     {!m.isBot && (
                       <button className="btn-ghost btn-sm" onClick={() => send({ op: 'transferHost', playerId: m.id })}>
                         {t('lobby.makeHost')}
@@ -151,7 +151,7 @@ export function Lobby() {
           )}
         </section>
 
-        <section className="panel p-4" data-testid="mode-panel">
+        <section className="panel min-w-0 p-4" data-testid="mode-panel">
           <h2 className="mb-3 text-xl font-semibold">{t('lobby.mode')}</h2>
           <div className="grid gap-2 sm:grid-cols-3">
             {MODES.map((mode) => {
@@ -196,7 +196,7 @@ export function Lobby() {
           </div>
 
           <div className="mt-4 rounded-2xl bg-santan-100 p-3 text-sm">
-            <div className="mb-2 flex -space-x-3">
+            <div className="deck-preview mb-2 flex flex-wrap gap-1">
               {(['nasi', 'telur', 'kacang', 'sambal', 'timun'] as const).map((k) => (
                 <GameCard key={k} kind={k} size="xs" />
               ))}

@@ -103,14 +103,14 @@ export function PileStack({
           top ? (
             <GameCard kind={top.kind} size="sm" />
           ) : (
-            <div className="aspect-[5/7] w-[4.4rem] rounded-xl border-2 border-dashed border-white/40" />
+            <div className="empty-pile rounded-xl border-2 border-dashed border-white/40" />
           )
         ) : count > 0 ? (
           <div className="relative">
             <GameCard kind={kind} size="sm" />
           </div>
         ) : (
-          <div className="aspect-[5/7] w-[4.4rem] rounded-xl border-2 border-dashed border-white/40" />
+          <div className="empty-pile rounded-xl border-2 border-dashed border-white/40" />
         )}
         <span className="pile-count absolute -bottom-2 -right-2 rounded-full px-2 py-0.5 text-xs font-bold shadow" data-testid={testId ? `${testId}-count` : undefined}>
           {count}
@@ -131,7 +131,7 @@ export function CenterPiles({ v, name }: { v: GameView; name: (id: string) => st
         {v.config.crows > 0 && <PileStack label={t('game.crowPile')} count={v.crowPile.length} kind="crow" testId="crow-pile" />}
       </div>
       {v.lastReveal && (
-        <div className="flex animate-pop items-center gap-2 rounded-2xl bg-kopi-900/40 px-3 py-1.5 text-xs font-semibold text-white" data-testid="last-reveal">
+        <div className="flex max-w-full animate-pop flex-wrap items-center justify-center gap-2 rounded-2xl bg-kopi-900/40 px-3 py-1.5 text-xs font-semibold text-white" data-testid="last-reveal">
           <span>{t('game.revealed', { name: name(v.lastReveal.actorId) })}:</span>
           {v.lastReveal.cards.map((c) => (
             <span key={c.id} className={v.lastReveal!.kept.includes(c.id) ? '' : 'opacity-50 line-through'}>

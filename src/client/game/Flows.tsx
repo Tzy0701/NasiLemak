@@ -139,14 +139,15 @@ function PlayerChoice({ players, onPick, testId }: { players: PlayerView[]; onPi
       {players.map((p) => (
         <button
           key={p.id}
-          className="flex items-center gap-3 rounded-2xl border-2 border-santan-300 bg-white px-3 py-2 text-left hover:border-leaf-400"
+          className="flex min-w-0 items-center gap-3 rounded-2xl border-2 border-santan-300 bg-white px-3 py-2 text-left hover:border-leaf-400"
           onClick={() => onPick(p)}
           data-testid="pick-player"
           data-player={p.name}
+          data-hand-count={p.handCount}
         >
           <Avatar id={p.id} name={p.name} size={32} />
-          <span className="flex-1 truncate font-bold">{p.name}</span>
-          <span className="text-xs text-kopi-700">{t('game.cardsInHand', { n: p.handCount })}</span>
+          <span className="min-w-0 flex-1 break-words font-bold">{p.name}</span>
+          <span className="shrink-0 text-xs text-kopi-700">{t('game.cardsInHand', { n: p.handCount })}</span>
         </button>
       ))}
     </div>
@@ -170,7 +171,7 @@ function NlChoice({
         return (
           <div key={p.id}>
             <div className="mb-1 flex items-center gap-2 text-sm font-bold">
-              <Avatar id={p.id} name={p.name} size={24} /> {p.name}
+              <Avatar id={p.id} name={p.name} size={24} /><span className="min-w-0 break-words">{p.name}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {nls.map((n) => (
@@ -215,7 +216,7 @@ export function PlayCardFlow({ card, info, act, onClose }: { card: Card; info: T
       return (
         <Modal open onClose={onClose} title={title} footer={cancel} testId="flow-supplier">
           <p className="mb-3 font-semibold">{t('game.chooseIngredient')}</p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="ingredient-choice-grid grid gap-2">
             {BASE_INGREDIENTS.map((k) => (
               <button key={k} className="flex flex-col items-center gap-1" onClick={() => submit({ type: 'play', cardId: card.id, card: 'supplier', ingredient: k })} data-testid={`announce-${k}`}>
                 <GameCard kind={k} size="sm" />
@@ -296,7 +297,7 @@ export function PlayCardFlow({ card, info, act, onClose }: { card: Card; info: T
             {holders.map((p) => (
               <button
                 key={p.id}
-                className="flex items-center gap-3 rounded-2xl border-2 border-santan-300 bg-white px-3 py-2 text-left hover:border-leaf-400"
+                className="flex min-w-0 items-center gap-3 rounded-2xl border-2 border-santan-300 bg-white px-3 py-2 text-left hover:border-leaf-400"
                 onClick={() => submit({ type: 'play', cardId: card.id, card: 'sioyen', crowId: p.crow!.id })}
                 data-testid="pick-crow"
               >
@@ -451,9 +452,9 @@ export function TradeComposer({
                   onClick={() => setPartner(o.id)}
                   data-testid="trade-partner"
                   data-player={o.name}
-                  className={`flex items-center gap-2 rounded-full border-2 py-1 pl-1 pr-3 font-bold ${partner === o.id ? 'border-kunyit-400 bg-kunyit-300/40' : 'border-santan-300 bg-white'}`}
+                  className={`flex max-w-full items-center gap-2 rounded-full border-2 py-1 pl-1 pr-3 font-bold ${partner === o.id ? 'border-kunyit-400 bg-kunyit-300/40' : 'border-santan-300 bg-white'}`}
                 >
-                  <Avatar id={o.id} name={o.name} size={28} /> {o.name}
+                  <Avatar id={o.id} name={o.name} size={28} /><span className="min-w-0 break-words">{o.name}</span>
                 </button>
               ))}
           </div>
@@ -474,18 +475,18 @@ export function TradeComposer({
         ))}
       </div>
       <h3 className="mb-2 font-semibold">{t('trade.want')}</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="trade-wants grid gap-2">
         {kinds.map((k) => (
-          <div key={k} className="flex items-center gap-2 rounded-xl bg-white/80 p-1.5" data-testid={`want-${k}`}>
+          <div key={k} className="trade-want flex min-w-0 items-center gap-2 rounded-xl bg-white/80 p-1.5" data-testid={`want-${k}`}>
             <GameCard kind={k} size="xs" />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-bold">{kindName(k)}</div>
+              <div className="break-words text-xs font-bold">{kindName(k)}</div>
               <div className="flex items-center gap-1">
-                <button className="h-8 w-8 rounded-full bg-santan-200 font-bold" onClick={() => bump(k, -1)} aria-label={`${kindName(k)} -1`}>
+                <button className="h-8 w-8 shrink-0 rounded-full bg-santan-200 font-bold" onClick={() => bump(k, -1)} aria-label={`${kindName(k)} -1`}>
                   −
                 </button>
-                <span className="w-5 text-center font-display font-semibold">{want[k] ?? 0}</span>
-                <button className="h-8 w-8 rounded-full bg-santan-200 font-bold" onClick={() => bump(k, 1)} aria-label={`${kindName(k)} +1`} data-testid={`want-${k}-plus`}>
+                <span className="w-5 shrink-0 text-center font-display font-semibold">{want[k] ?? 0}</span>
+                <button className="h-8 w-8 shrink-0 rounded-full bg-santan-200 font-bold" onClick={() => bump(k, 1)} aria-label={`${kindName(k)} +1`} data-testid={`want-${k}-plus`}>
                   +
                 </button>
               </div>
@@ -505,7 +506,20 @@ export function TradeResponse({ info, act, onCounter }: { info: TableInfo; act: 
   const affordable = wants.every(([k, n]) => info.v.hand.filter((c) => c.kind === k).length >= n);
   const isProposer = tr.proposerId === info.v.youId;
   return (
-    <Modal open required wide title={t('trade.incoming', { name: offererName })} testId="trade-response">
+    <Modal open required wide title={t('trade.incoming', { name: offererName })} testId="trade-response" footer={
+      <>
+        <button className="btn-ghost" onClick={() => act({ type: 'respondTrade', tradeId: tr.id, response: 'reject' })} data-testid="reject-trade">
+          {t('trade.reject')}
+        </button>
+        <button className="btn-gold" onClick={onCounter} disabled={tr.round >= 6} data-testid="counter-trade">
+          {t('trade.counter')}
+        </button>
+        <button className="btn-leaf" disabled={!affordable} onClick={() => act({ type: 'respondTrade', tradeId: tr.id, response: 'accept' })} data-testid="accept-trade">
+          {t('trade.accept')}
+        </button>
+        {isProposer && <button className="btn-ghost text-sambal-600" onClick={() => act({ type: 'cancelTrade', tradeId: tr.id })}>{t('trade.cancel')}</button>}
+      </>
+    }>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <h3 className="mb-2 font-semibold text-leaf-700">{t('trade.theyGive', { name: offererName })}</h3>
@@ -529,27 +543,6 @@ export function TradeResponse({ info, act, onCounter }: { info: TableInfo; act: 
         </div>
       </div>
       <p className="mt-3 text-xs text-kopi-700">{t('trade.round', { n: tr.round })}</p>
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button className="btn-ghost" onClick={() => act({ type: 'respondTrade', tradeId: tr.id, response: 'reject' })} data-testid="reject-trade">
-          {t('trade.reject')}
-        </button>
-        <button className="btn-gold" onClick={onCounter} disabled={tr.round >= 6} data-testid="counter-trade">
-          {t('trade.counter')}
-        </button>
-        <button
-          className="btn-leaf"
-          disabled={!affordable}
-          onClick={() => act({ type: 'respondTrade', tradeId: tr.id, response: 'accept' })}
-          data-testid="accept-trade"
-        >
-          {t('trade.accept')}
-        </button>
-        {isProposer && (
-          <button className="btn-ghost text-sambal-600" onClick={() => act({ type: 'cancelTrade', tradeId: tr.id })}>
-            {t('trade.cancel')}
-          </button>
-        )}
-      </div>
     </Modal>
   );
 }

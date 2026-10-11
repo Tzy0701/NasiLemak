@@ -49,16 +49,18 @@ function ConnectedRoom({ code, token }: { code: string; token: string }) {
   }
   return (
     <Ctx.Provider value={{ client, snap }}>
-      {snap.status !== 'open' && (
-        <div
-          role="status"
-          className="fixed inset-x-0 top-0 z-[60] bg-kunyit-400 py-1 text-center text-sm font-bold text-kopi-900 shadow"
-          data-testid="reconnecting"
-        >
-          {t('game.connection.reconnecting')}
-        </div>
-      )}
-      {snap.room.status === 'lobby' || !snap.game ? <Lobby /> : <GameTable key={snap.room.gamesPlayed} />}
+      <div className="connected-room">
+        {snap.status !== 'open' && (
+          <div
+            role="status"
+            className="connection-status bg-kunyit-400 px-2 py-1 text-center text-sm font-bold text-kopi-900 shadow"
+            data-testid="reconnecting"
+          >
+            {t('game.connection.reconnecting')}
+          </div>
+        )}
+        {snap.room.status === 'lobby' || !snap.game ? <Lobby /> : <GameTable key={snap.room.gamesPlayed} />}
+      </div>
     </Ctx.Provider>
   );
 }

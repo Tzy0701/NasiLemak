@@ -32,11 +32,11 @@ function Stepper({
   testId?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-white/70 px-2 py-1" data-testid={testId}>
+    <div className="custom-stepper flex min-w-0 items-center gap-2 rounded-xl bg-white/70 px-2 py-1" data-testid={testId}>
       {art && <CardArt kind={art} className="h-8 w-8 shrink-0" />}
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{label}</span>
+      <span className="min-w-0 flex-1 break-words text-sm font-semibold">{label}</span>
       {editable ? (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             className="h-9 w-9 rounded-full bg-santan-200 font-bold disabled:opacity-40"

@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { t } from '../client/i18n';
 
 interface Props {
@@ -19,17 +20,37 @@ interface Props {
  */
 export function Modal({ open, onClose, title, children, footer, wide, testId, required }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !required) onClose?.();
+      // A card preview can sit above the reference dialog. Only the top dialog
+      // should handle keyboard input; Escape must not close both at once.
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== ref.current) return;
+      if (e.key === 'Escape' && !required) closeRef.current?.();
+      if (e.key === 'Tab') {
+        const controls = [...(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex="0"]') ?? [])]
+          .filter((el) => el.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) { e.preventDefault(); ref.current?.focus(); }
+        else if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && (document.activeElement === last || document.activeElement === ref.current)) { e.preventDefault(); first.focus(); }
+      }
     };
     window.addEventListener('keydown', onKey);
     ref.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, required]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [open, required]);
   if (!open) return null;
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-kopi-900/55 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={() => !required && onClose?.()}
@@ -38,6 +59,7 @@ export function Modal({ open, onClose, title, children, footer, wide, testId, re
         ref={ref}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         data-testid={testId}
         onClick={(e) => e.stopPropagation()}
@@ -46,18 +68,18 @@ export function Modal({ open, onClose, title, children, footer, wide, testId, re
         }`}
       >
         {(title || (onClose && !required)) && (
-          <div className="modal-header flex items-center justify-between gap-3 px-5 py-3">
-            <h2 className="text-xl font-semibold">{title}</h2>
+          <div className="modal-header flex shrink-0 items-center justify-between gap-3 px-5 py-3">
+            <h2 id={titleId} className="min-w-0 break-words text-xl font-semibold">{title}</h2>
             {onClose && !required && (
-              <button className="btn-ghost btn-sm" onClick={onClose} aria-label={t('common.close')}>
+              <button className="btn-ghost btn-sm shrink-0" onClick={onClose} aria-label={t('common.close')}>
                 ✕
               </button>
             )}
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="safe-bottom flex flex-wrap justify-end gap-2 border-t border-santan-300 bg-santan-100 px-5 py-3">{footer}</div>}
+        <div className="modal-body min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="modal-footer safe-bottom flex shrink-0 flex-wrap justify-end gap-2 border-t border-santan-300 bg-santan-100 px-5 py-3">{footer}</div>}
       </div>
-    </div>
+    </div>, document.body
   );
 }

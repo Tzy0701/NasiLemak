@@ -179,6 +179,7 @@ export function GameTable() {
       <div className="game-layout flex min-h-0 min-w-0 flex-1">
         {/* Table */}
         <div className="game-stage flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="table-board flex min-h-0 flex-1 flex-col overflow-y-auto">
           {/* Opponents */}
           <section
             className="opponents"
@@ -222,11 +223,13 @@ export function GameTable() {
             )}
           </section>
 
+          </div>
+
           {/* My area */}
           <section className="player-area safe-bottom shrink-0 px-2 pt-2" data-testid="my-area">
             <div className="player-summary flex items-center gap-2 px-1">
               {me && <Avatar id={me.id} name={me.name} size={42} ring={myTurn} avatar={members.get(me.id)?.avatar} />}
-              <div className="min-w-0">
+              <div className="player-name min-w-0">
                 <div className="truncate text-sm font-bold leading-tight">{me?.name}</div>
                 <div className="text-xs text-kopi-700" data-testid="my-packs">
                   {t('common.packs', { n: myPacks })} / {v.config.length === 'short' ? v.config.targetPacks : '∞'}
@@ -248,7 +251,7 @@ export function GameTable() {
 
             {/* Action bar */}
             {v.status === 'playing' && myTurn && (
-              <div className="mt-2 flex items-start gap-2 px-1 pb-1" data-testid="action-bar">
+              <div className="mt-2 flex flex-wrap items-start gap-2 px-1 pb-1" data-testid="action-bar">
                 <div className="flex min-w-0 flex-1 flex-wrap gap-2">
                   <button className="btn-leaf btn-sm" disabled={!canMake(info)} onClick={() => setFlow({ type: 'make' })} data-testid="action-make">
                     {t('game.make')}
@@ -276,7 +279,7 @@ export function GameTable() {
             <div className="no-scrollbar flex snap-x gap-1.5 overflow-x-auto px-1 pb-2 pt-3 sm:justify-center sm:gap-2" data-testid="hand">
               {hand.length === 0 && <p className="py-6 text-sm italic text-kopi-700">{t('game.noCards')}</p>}
               {groups.map(({ card: c, count, isNew }) => (
-                <div key={c.id} className="relative snap-start" data-testid="hand-stack">
+                <div key={c.id} className="hand-stack relative shrink-0 snap-start" data-testid="hand-stack">
                   {count > 1 && (
                     <div className="absolute inset-0 translate-x-1.5 translate-y-1 rounded-2xl border-4 bg-santan-200" style={{ borderColor: 'rgba(0,0,0,0.15)' }} aria-hidden="true" />
                   )}
@@ -288,14 +291,10 @@ export function GameTable() {
                     testId="hand-card"
                     label={`${kindName(c.kind)}${count > 1 ? ` ×${count}` : ''}`}
                   />
-                  {count > 1 && (
-                    <span className="absolute -right-1 bottom-2 rounded-full bg-kopi-900 px-2 py-0.5 font-display text-sm font-bold text-white shadow" data-testid="stack-count">
-                      ×{count}
-                    </span>
-                  )}
-                  {isNew && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-sambal-500 px-1.5 text-[0.6rem] font-bold text-white shadow">NEW</span>
-                  )}
+                  <div className="hand-card-tags">
+                    {isNew && <span className="rounded-full bg-sambal-500 px-1.5 text-[0.6rem] font-bold text-white shadow">NEW</span>}
+                    {count > 1 && <span className="ml-auto rounded-full bg-kopi-900 px-1.5 text-xs font-bold text-white shadow" data-testid="stack-count">×{count}</span>}
+                  </div>
                 </div>
               ))}
             </div>

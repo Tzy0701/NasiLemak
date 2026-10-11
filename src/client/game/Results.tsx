@@ -48,10 +48,10 @@ export function Results({
       }
     >
       <div className="mb-4 text-center">
-        <div className="mx-auto mb-2 w-24 animate-float">
+        <div className="mx-auto mb-2 flex animate-float justify-center">
           <GameCard kind="nasiLemak" size="md" packs={2} />
         </div>
-        <h2 className="font-display text-3xl font-bold text-sambal-600" data-testid="winner-headline">
+        <h2 className="break-words font-display text-3xl font-bold text-sambal-600" data-testid="winner-headline">
           {headline}
         </h2>
         <p className="text-sm text-kopi-700">{t(`results.reason.${r.reason}`)}</p>
@@ -66,12 +66,12 @@ export function Results({
             <li
               key={s.playerId}
               data-testid="standing"
-              className={`flex flex-wrap items-center gap-3 rounded-2xl px-3 py-2 ${winner ? 'bg-kunyit-300/50' : 'bg-santan-100'}`}
+              className={`standing-row grid items-center gap-2 rounded-2xl px-3 py-2 ${winner ? 'bg-kunyit-300/50' : 'bg-santan-100'}`}
             >
               <span className="w-5 font-display text-lg font-bold">{i + 1}</span>
               <Avatar id={s.playerId} name={info.name(s.playerId)} size={30} />
-              <span className="min-w-0 flex-1 truncate font-bold">{info.name(s.playerId)}</span>
-              <div className="flex gap-1">
+              <span className="min-w-0 break-words font-bold">{info.name(s.playerId)}</span>
+              <div className="standing-cards flex flex-wrap gap-1">
                 {player?.nasiLemak.map((nl, j) => (
                   <GameCard key={nl.id} kind="nasiLemak" size="xs" packs={values[j]} fly={nl.hasFly} />
                 ))}

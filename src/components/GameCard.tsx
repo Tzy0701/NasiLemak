@@ -31,7 +31,7 @@ export function GameCard({ kind, size = 'md', selected, dimmed, highlight, packs
     aria-pressed={onClick && selected !== undefined ? selected : undefined} data-testid={testId} data-kind={kind} data-face={hidden ? 'back' : 'front'} onClick={onClick} onKeyDown={onKey}
     className={`game-card card-${size} ${hidden ? 'card-hidden' : ''} ${action ? 'card-action' : ''} ${ingredient ? 'card-ingredient' : ''} ${selected ? 'is-selected' : ''} ${highlight ? 'is-highlighted' : ''} ${dimmed ? 'is-dimmed' : ''} ${onClick ? 'is-interactive' : ''} ${className}`}
     style={{ '--card-color': FRAME[kind], ...style } as CSSProperties}>
-    <div className="card-face">
+    <div className={`card-face ${kind === 'nasiLemak' && !hidden ? 'card-scoring-face' : ''}`}>
       {hidden ? <img className="card-back-image" src={`${ART_ROOT}/${kind === 'back' ? 'draw-back' : 'score-back'}.png`} alt="" draggable={false} decoding="async" /> : <>
         {action && size !== 'xs' && <div className="card-ribbon"><span>{name}</span><small>{local}</small></div>}
         {ingredient && <div className="ingredient-corners" aria-hidden="true">{[0, 1, 2, 3].map(i => <CardArt key={i} kind={kind} className={`corner corner-${i}`} />)}</div>}

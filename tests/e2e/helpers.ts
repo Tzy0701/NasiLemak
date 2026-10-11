@@ -106,7 +106,16 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
   if (
     await tryPlay(page, 'officer', async () => {
       // Inspect the player with the most cards and take two of them.
-      await page.getByTestId('pick-player').first().click();
+      const targets = page.getByTestId('pick-player');
+      const choices = await targets.evaluateAll((buttons) => buttons.map((button, index) => ({ index, count: Number(button.getAttribute('data-hand-count')) })).sort((a, b) => b.count - a.count));
+      const choice = choices[0]!;
+      await targets.nth(choice.index).click();
+      // An empty hand is a valid target and resolves without a take prompt.
+      if (choice.count === 0) {
+        await expect(page.getByTestId('flow-officer')).toBeHidden();
+        await expect(page.getByTestId('officer-take')).toBeHidden();
+        return;
+      }
       await expect(page.getByTestId('officer-take')).toBeVisible();
       const cards = page.getByTestId('officer-card');
       const n = Math.min(2, await cards.count());
@@ -135,7 +144,12 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
     })
   )
     return 'played';
-  await page.getByTestId('action-end-turn').click();
+  const end = page.getByTestId('action-end-turn');
+  // The previous move can finish the turn while the helper inspects the hand.
+  // A vanished action bar means the next player is already up.
+  if (!(await end.isVisible())) return 'ended';
+  try { await end.click({ timeout: 2000 }); }
+  catch (error) { if (!(await isMyTurn(page))) return 'ended'; throw error; }
   const confirm = page.getByTestId('confirm-end-turn');
   if (await confirm.isVisible().catch(() => false)) await confirm.click();
   return 'ended';

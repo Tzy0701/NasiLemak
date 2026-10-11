@@ -60,7 +60,7 @@ export function CardReferenceModal({ open, onClose }: { open: boolean; onClose: 
   return (
     <Modal open={open} onClose={onClose} title={t('common.cards')} wide testId="card-reference">
       <p className="mb-3 text-sm text-kopi-700">{t('common.countsLegend')}</p>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+      <div className="card-reference-grid grid">
         {kinds.map((k) => (
           <button key={k} className="flex flex-col items-center gap-1" onClick={() => setFocus(k)}>
             <GameCard kind={k} size="md" packs={k === 'nasiLemak' ? 2 : undefined} />
@@ -127,7 +127,7 @@ export function Toggle({ label, value, onChange }: { label: string; value: boole
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className={`relative h-8 w-14 rounded-full transition ${value ? 'bg-leaf-500' : 'bg-santan-300'}`}
+        className={`relative h-8 w-14 shrink-0 rounded-full transition ${value ? 'bg-leaf-500' : 'bg-santan-300'}`}
       >
         <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${value ? 'left-7' : 'left-1'}`} />
       </button>
