@@ -33,6 +33,7 @@ export const en = {
     notReady: 'Not ready',
     packs: '{n} pack(s)',
     cardsCount: '{n} card(s)',
+    countsLegend: 'Copies: base game / with Rendang. Tap a card for details.',
   },
   home: {
     createTitle: 'Open a new stall',
@@ -47,6 +48,17 @@ export const en = {
     modeCustom: 'Custom House Rules',
     modeCustomDesc: '2–7 players. Tune deck counts, hand size, moves per turn and more. Includes simulation-tested presets for big groups.',
     rejoin: 'Rejoin room {code}',
+  },
+  crash: {
+    title: 'Alamak! Something went wrong',
+    body: 'The page hit an unexpected error. Your seat and the game are safe on the server — reload to jump back in.',
+    reload: 'Reload',
+  },
+  room: {
+    kicked: 'You were removed from this room.',
+    left: 'You left the room.',
+    badToken: 'Your seat in this room is no longer valid.',
+    closed: 'This room has closed.',
   },
   join: {
     title: 'Join room {code}',
@@ -90,6 +102,7 @@ export const en = {
     officialLocked: 'Official rules — locked.',
     deckSummary: '{deck} draw cards · {nl} Nasi Lemak cards ({one}×1, {two}×2) · {crows} Crow(s)',
     rename: 'Change name',
+    playersRange: '{range} players',
   },
   custom: {
     title: 'Custom House Rules',

@@ -58,7 +58,7 @@ export function CardReferenceModal({ open, onClose }: { open: boolean; onClose: 
   };
   return (
     <Modal open={open} onClose={onClose} title={t('common.cards')} wide testId="card-reference">
-      <p className="mb-3 text-sm text-kopi-700">Base / with Rendang — tap a card for details.</p>
+      <p className="mb-3 text-sm text-kopi-700">{t('common.countsLegend')}</p>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
         {kinds.map((k) => (
           <button key={k} className="flex flex-col items-center gap-1" onClick={() => setFocus(k)}>

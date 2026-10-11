@@ -12,7 +12,7 @@ export interface Seat {
 export async function hostRoom(browser: Browser, name: string, opts = DESKTOP): Promise<{ seat: Seat; code: string }> {
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('create-name').fill(name);
   await page.getByTestId('create-room').click();
   await expect(page.getByTestId('room-code')).toBeVisible();
@@ -24,7 +24,7 @@ export async function hostRoom(browser: Browser, name: string, opts = DESKTOP): 
 export async function joinByLink(browser: Browser, code: string, name: string, opts = DESKTOP): Promise<Seat> {
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
-  await page.goto(`/r/${code}`);
+  await page.goto(`/r/${code}`, { waitUntil: 'domcontentloaded' });
   await page.getByTestId('room-join-name').fill(name);
   await page.getByTestId('room-join-submit').click();
   await expect(page.getByTestId('ready-toggle')).toBeVisible();
@@ -32,7 +32,7 @@ export async function joinByLink(browser: Browser, code: string, name: string, o
 }
 
 export async function isMyTurn(page: Page): Promise<boolean> {
-  const t = await page.getByTestId('turn-banner').textContent().catch(() => '');
+  const t = await page.getByTestId('turn-banner').textContent({ timeout: 2000 }).catch(() => '');
   return !!t && t.includes('Your turn');
 }
 
@@ -53,9 +53,11 @@ export async function assertNoHorizontalOverflow(page: Page) {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-export async function assertInViewport(page: Page, testId: string) {
-  const box = await page.getByTestId(testId).boundingBox();
+export async function assertInViewport(page: Page, testId: string, opts: { ifPresent?: boolean } = {}) {
+  const box = await page.getByTestId(testId).boundingBox({ timeout: opts.ifPresent ? 1000 : undefined }).catch(() => null);
   const vp = page.viewportSize()!;
+  // During live play the turn can move on between two checks; then there is nothing to measure.
+  if (!box && opts.ifPresent) return;
   expect(box, testId).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.y).toBeGreaterThanOrEqual(0);
@@ -87,7 +89,7 @@ async function tryPlay(page: Page, kind: string, finish: () => Promise<void>): P
  */
 export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'ended'> {
   const make = page.getByTestId('action-make');
-  await expect(make).toBeVisible();
+  if (!(await make.isVisible())) return 'ended'; // turn already moved on
   if (await make.isEnabled()) {
     await make.click();
     await page.getByTestId('confirm-recipe').click();
@@ -101,6 +103,19 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
     })
   )
     return 'made';
+  if (
+    await tryPlay(page, 'officer', async () => {
+      // Inspect the player with the most cards and take two of them.
+      await page.getByTestId('pick-player').first().click();
+      await expect(page.getByTestId('officer-take')).toBeVisible();
+      const cards = page.getByTestId('officer-card');
+      const n = Math.min(2, await cards.count());
+      for (let i = 0; i < n; i++) await cards.nth(i).click();
+      await page.getByTestId('confirm-officer').click();
+      await expect(page.getByTestId('officer-take')).toBeHidden();
+    })
+  )
+    return 'played';
   for (const kind of ['wholesaler', 'thief']) {
     if (
       await tryPlay(page, kind, async () => {

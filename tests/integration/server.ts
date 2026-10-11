@@ -8,7 +8,7 @@ export interface DevServer {
 
 /** Start the real Worker (vite dev + Cloudflare plugin / workerd) with fast timers. */
 export async function startServer(port: number): Promise<DevServer> {
-  const env = { ...process.env, WRANGLER_CONFIG: 'tests/wrangler.test.jsonc' };
+  const env = { ...process.env, WRANGLER_CONFIG: 'tests/wrangler.test.jsonc', PERSIST_DIR: `.wrangler/state-test-${port}` };
   const proc = spawn('npx', ['vite', 'dev', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
     cwd: process.cwd(),
     env,

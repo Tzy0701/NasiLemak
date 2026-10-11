@@ -67,14 +67,7 @@ function Ended({ code, reason }: { code: string; reason: NonNullable<RoomSnapsho
   useEffect(() => {
     clearSession(code);
   }, [code]);
-  const msg =
-    reason === 'kicked'
-      ? 'You were removed from this room.'
-      : reason === 'left'
-        ? 'You left the room.'
-        : reason === 'bad-token'
-          ? 'Your seat in this room is no longer valid.'
-          : 'This room has closed.';
+  const msg = t(`room.${reason === 'bad-token' ? 'badToken' : reason === 'room-closed' ? 'closed' : reason}`);
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="font-display text-2xl">{msg}</p>

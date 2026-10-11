@@ -8,8 +8,21 @@ export default defineConfig({
     react(),
     tailwindcss(),
     // WRANGLER_CONFIG lets the test suite run the Worker with fast timers.
-    cloudflare({ configPath: process.env.WRANGLER_CONFIG ?? 'wrangler.jsonc' }),
+    // PERSIST_DIR isolates local Durable Object storage per test suite.
+    cloudflare({
+      configPath: process.env.WRANGLER_CONFIG ?? 'wrangler.jsonc',
+      persistState: process.env.PERSIST_DIR ? { path: process.env.PERSIST_DIR } : true,
+    }),
   ],
+  // Test builds (WRANGLER_CONFIG set) go to a separate folder so they can never be deployed by accident.
+  ...(process.env.WRANGLER_CONFIG
+    ? {
+        environments: {
+          client: { build: { outDir: 'dist-test/client' } },
+          nasi_lemak_online_test: { build: { outDir: 'dist-test/worker' } },
+        },
+      }
+    : {}),
   build: {
     chunkSizeWarningLimit: 900,
   },

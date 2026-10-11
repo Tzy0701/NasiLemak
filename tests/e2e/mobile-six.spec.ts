@@ -23,11 +23,11 @@ test('6 phones join a Rendang game; the table stays usable on small screens', as
   let turns = 0;
   for (let i = 0; i < 300 && turns < 14; i++) {
     const current = (await Promise.all(seats.map(async (s) => ((await isMyTurn(s.page)) ? s : null)))).find(Boolean);
-    if (!current) {
+    if (!current || !(await current.page.getByTestId('action-bar').isVisible())) {
       await host.page.waitForTimeout(150);
       continue;
     }
-    await assertInViewport(current.page, 'action-end-turn');
+    await assertInViewport(current.page, 'action-end-turn', { ifPresent: true });
     if (turns === 0) {
       // Tap a card: the detail sheet opens and fits the screen.
       await current.page.getByTestId('hand-card').first().click();

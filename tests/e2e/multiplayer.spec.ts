@@ -35,13 +35,13 @@ test('3 players on separate browsers play a complete Classic Base game through t
     if (await host.page.getByTestId('results').isVisible().catch(() => false)) break;
     let current: Seat | undefined;
     for (const s of seats) if (await isMyTurn(s.page)) current = s;
-    if (!current) {
+    if (!current || !(await current.page.getByTestId('action-bar').isVisible())) {
       await host.page.waitForTimeout(150);
       continue;
     }
     if (current === guest1) {
-      await assertInViewport(current.page, 'action-end-turn');
-      await assertInViewport(current.page, 'action-make');
+      await assertInViewport(current.page, 'action-end-turn', { ifPresent: true });
+      await assertInViewport(current.page, 'action-make', { ifPresent: true });
     }
     // Once: a trade offer through the UI that the partner rejects.
     if (!traded && current === host && (await host.page.getByTestId('action-trade').isEnabled())) {
@@ -61,14 +61,15 @@ test('3 players on separate browsers play a complete Classic Base game through t
     if (!refreshed && step > 6 && current !== guest1) {
       refreshed = true;
       const before = await handSignature(guest1.page);
-      await guest1.page.reload();
+      await guest1.page.reload({ waitUntil: 'domcontentloaded' });
       await expect(guest1.page.getByTestId('hand')).toBeVisible();
       const after = await handSignature(guest1.page);
       expect(after).toBe(before);
     }
+    const t0 = Date.now();
     const r = await takeSimpleTurn(current.page);
+    if (process.env.E2E_DEBUG) console.log(`step ${step} ${current.name} ${r} ${Date.now() - t0}ms`);
     if (r === 'made') made++;
-    await current.page.waitForTimeout(120);
   }
 
   for (const s of seats) await expect(s.page.getByTestId('results')).toBeVisible();

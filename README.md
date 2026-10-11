@@ -72,7 +72,8 @@ Optional: `cp .dev.vars.example .dev.vars` for local variable overrides.
 npm run typecheck          # TypeScript (app, worker, tests)
 npm run test:unit          # rules engine, views, custom rules, 320 fuzzed full games
 npm run test:integration   # starts the Worker locally (fast timers) and plays real games over WebSockets
-npm run test:e2e           # Playwright browsers (uses an installed Chromium; run `npx playwright install chromium` once if needed)
+npm run test:e2e           # Playwright: builds the production bundle, serves it with `vite preview` (workerd), drives several browsers
+                           # (run `npx playwright install chromium` once if no Chromium is installed)
 npm test                   # unit + integration
 npm run simulate           # balance simulations (GAMES=1000 by default)
 ```

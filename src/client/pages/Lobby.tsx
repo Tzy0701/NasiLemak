@@ -168,7 +168,7 @@ export function Lobby() {
                 >
                   <div className="font-display font-semibold leading-tight">{t(`home.${mode.key}`)}</div>
                   <div className="mt-1 text-xs text-kopi-700">
-                    {mode.cfg ? `${mode.cfg.minPlayers}–${mode.cfg.maxPlayers}` : '2–7'} players
+                    {t('lobby.playersRange', { range: mode.cfg ? `${mode.cfg.minPlayers}–${mode.cfg.maxPlayers}` : '2–7' })}
                   </div>
                 </button>
               );

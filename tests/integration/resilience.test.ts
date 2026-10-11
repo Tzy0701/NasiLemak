@@ -24,15 +24,16 @@ describe('disconnects, refreshes and reconnection', () => {
     const p1 = players[idx]!;
     const handBefore = p1.game!.hand.map((c) => c.id).sort();
     const turnBefore = p1.game!.turn.number;
+    const watcher = players.find((p) => p !== p1)!;
     p1.drop();
-    await players[0]!.waitFor(() => !players[0]!.room!.members.find((m) => m.id === p1.playerId)!.connected, 5000, 'seen offline');
+    await watcher.waitFor(() => !watcher.room!.members.find((m) => m.id === p1.playerId)!.connected, 5000, 'seen offline');
     // "Refresh": a brand-new socket with the same stored token.
     const again = new TestPlayer(base, p1.name, p1.code, p1.playerId, p1.token);
     await again.connect();
     expect(again.game!.hand.map((c) => c.id).sort()).toEqual(handBefore);
     expect(again.game!.turn.number).toBe(turnBefore);
     expect(again.game!.youId).toBe(p1.playerId);
-    await players[0]!.waitFor(() => players[0]!.room!.members.find((m) => m.id === p1.playerId)!.connected, 5000, 'seen online');
+    await watcher.waitFor(() => watcher.room!.members.find((m) => m.id === p1.playerId)!.connected, 5000, 'seen online');
     players[idx] = again;
     await playGame(players, ['collector', 'trader', 'aggressive']);
     expect(again.game!.status).toBe('finished');
