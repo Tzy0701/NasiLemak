@@ -41,13 +41,13 @@ export function Modal({ open, onClose, title, children, footer, wide, testId, re
         tabIndex={-1}
         data-testid={testId}
         onClick={(e) => e.stopPropagation()}
-        className={`panel flex max-h-[92dvh] w-full animate-slide-up flex-col overflow-hidden rounded-b-none outline-none sm:rounded-3xl ${
+        className={`panel heritage-modal flex max-h-[92dvh] w-full animate-slide-up flex-col overflow-hidden rounded-b-none outline-none sm:rounded-3xl ${
           wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'
         }`}
       >
         {(title || (onClose && !required)) && (
-          <div className="flex items-center justify-between gap-3 border-b border-santan-300 bg-santan-100 px-5 py-3">
-            <h2 className="text-xl font-semibold text-kopi-900">{title}</h2>
+          <div className="modal-header flex items-center justify-between gap-3 px-5 py-3">
+            <h2 className="text-xl font-semibold">{title}</h2>
             {onClose && !required && (
               <button className="btn-ghost btn-sm" onClick={onClose} aria-label={t('common.close')}>
                 ✕

@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react';
+import { isValidAvatar } from '../shared/protocol';
 
 /** Per-device preferences and room sessions (localStorage). */
 export interface Prefs {
+  avatar?: number;
   sound: boolean;
   reducedMotion: boolean;
   lastName: string;
@@ -20,6 +22,7 @@ function read<T>(key: string, fallback: T): T {
 }
 
 let prefs: Prefs = read<Prefs>(PREFS_KEY, { sound: true, reducedMotion: false, lastName: '' });
+if (!isValidAvatar(prefs.avatar)) delete prefs.avatar;
 const listeners = new Set<() => void>();
 
 export function getPrefs(): Prefs {

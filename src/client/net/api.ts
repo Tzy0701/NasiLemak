@@ -1,5 +1,7 @@
 import type { CreateRoomResponse, JoinRoomResponse, RoomInfoResponse } from '../../shared/protocol';
 
+import { getPrefs } from '../prefs';
+
 export class ApiError extends Error {
   constructor(public code: string) {
     super(code);
@@ -22,11 +24,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function createRoom(name: string): Promise<CreateRoomResponse> {
-  return call('/api/rooms', { method: 'POST', body: JSON.stringify({ name }) });
+  return call('/api/rooms', { method: 'POST', body: JSON.stringify({ name, avatar: getPrefs().avatar }) });
 }
 
 export function joinRoom(code: string, name: string): Promise<JoinRoomResponse> {
-  return call(`/api/rooms/${encodeURIComponent(code)}/join`, { method: 'POST', body: JSON.stringify({ name }) });
+  return call(`/api/rooms/${encodeURIComponent(code)}/join`, { method: 'POST', body: JSON.stringify({ name, avatar: getPrefs().avatar }) });
 }
 
 export function roomInfo(code: string): Promise<RoomInfoResponse> {

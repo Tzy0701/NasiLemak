@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { GameCard } from '../../components/GameCard';
+import { CardRulesContext } from '../../components/CardRules';
 import { LogIcon, MenuIcon } from '../../components/Icons';
 import { Modal } from '../../components/Modal';
 import { CardArt } from '../../components/art/CardArt';
@@ -140,7 +141,7 @@ export function GameTable() {
   const logPanel = (
     <ol className="space-y-1 text-[0.82rem] leading-snug" data-testid="game-log">
       {[...v.log].reverse().map((e) => (
-        <li key={e.seq} className={`rounded-lg px-2 py-1 ${e.to ? 'bg-kunyit-300/30' : e.key === 'turn-start' ? 'bg-leaf-100 font-bold' : 'bg-white/60'}`}>
+        <li key={e.seq} className={`rounded-lg px-2 py-1 ${e.to ? 'log-private bg-kunyit-300/30' : e.key === 'turn-start' ? 'bg-leaf-100 font-bold' : 'bg-white/60'}`}>
           {formatLog(e, info)}
         </li>
       ))}
@@ -148,16 +149,17 @@ export function GameTable() {
   );
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <CardRulesContext.Provider value={v.config}><div className="game-shell flex h-dvh flex-col overflow-hidden">
       <Toasts />
       {/* Top bar */}
-      <header className="safe-top z-30 flex items-center gap-2 bg-leaf-800 px-3 pb-1.5 text-white shadow">
+      <header className="game-topbar safe-top z-30 flex items-center gap-2 px-3 pb-1.5 text-white shadow">
         <button className="rounded-xl p-2 hover:bg-white/10" onClick={() => setFlow({ type: 'menu' })} aria-label={t('game.menu')} data-testid="menu-button">
           <MenuIcon />
         </button>
+        <span className="game-brand">Nasi Lemak<br />Online</span>
         <div className="min-w-0 flex-1 text-center">
           <div
-            className={`mx-auto inline-flex max-w-full items-center gap-2 truncate rounded-full px-3 py-1 font-display text-sm font-semibold sm:text-base ${
+            className={`turn-banner mx-auto inline-flex max-w-full items-center gap-2 truncate rounded-full px-3 py-1 font-display text-sm font-semibold sm:text-base ${
               myTurn ? 'animate-pulse-ring bg-kunyit-400 text-kopi-900' : 'bg-white/10'
             }`}
             data-testid="turn-banner"
@@ -174,13 +176,14 @@ export function GameTable() {
         )}
       </header>
 
-      <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="game-layout flex min-h-0 min-w-0 flex-1">
         {/* Table */}
-        <div className="table-felt flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="game-stage flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Opponents */}
           <section
-            className={`no-scrollbar flex gap-2 overflow-x-auto px-3 py-2 ${roomy ? 'flex-wrap justify-center' : ''}`}
+            className="opponents"
             data-testid="opponents"
+            data-count={opponents.length}
           >
             {opponents.map((p) => (
               <OpponentSeat key={p.id} p={p} member={members.get(p.id)} active={p.id === v.turn.playerId && v.status === 'playing'} compact={!roomy} />
@@ -188,7 +191,7 @@ export function GameTable() {
           </section>
 
           {/* Centre */}
-          <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3 py-2">
+          <section className="table-centre flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
             <CenterPiles v={v} name={(id) => info.name(id)} />
             {currentMember && !currentMember.connected && !currentMember.isBot && v.status === 'playing' && (
               <div className="flex items-center gap-2 rounded-2xl bg-kopi-900/50 px-3 py-1.5 text-xs font-semibold text-white" data-testid="absent-banner">
@@ -220,9 +223,9 @@ export function GameTable() {
           </section>
 
           {/* My area */}
-          <section className="safe-bottom rounded-t-3xl bg-santan-100/95 px-2 pt-2 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.5)]" data-testid="my-area">
-            <div className="flex items-center gap-2 px-1">
-              {me && <Avatar id={me.id} name={me.name} size={30} ring={myTurn} />}
+          <section className="player-area safe-bottom shrink-0 px-2 pt-2" data-testid="my-area">
+            <div className="player-summary flex items-center gap-2 px-1">
+              {me && <Avatar id={me.id} name={me.name} size={42} ring={myTurn} avatar={members.get(me.id)?.avatar} />}
               <div className="min-w-0">
                 <div className="truncate text-sm font-bold leading-tight">{me?.name}</div>
                 <div className="text-xs text-kopi-700" data-testid="my-packs">
@@ -240,6 +243,7 @@ export function GameTable() {
                   {me.crow.stashCount}
                 </div>
               )}
+              <span className="hand-caption">{t('design.hand', { n: hand.length })}</span>
             </div>
 
             {/* Action bar */}
@@ -258,9 +262,12 @@ export function GameTable() {
                     </button>
                   )}
                 </div>
-                <button className="btn-primary btn-sm shrink-0" disabled={!!pending} onClick={endTurn} data-testid="action-end-turn">
+                <button className="btn-gold btn-sm shrink-0" disabled={!!pending} onClick={endTurn} data-testid="action-end-turn">
                   {t('game.endTurn')}
                 </button>
+                <span className="moves-indicator" role="img" aria-label={t('design.moves', { n: v.turn.movesLeft })}>
+                  {Array.from({ length: v.config.movesPerTurn }, (_, i) => <span key={i} className={`move-leaf ${i < v.turn.movesLeft ? '' : 'is-used'}`} />)}
+                </span>
               </div>
             )}
             {myTurn && me?.crow && <p className="px-1 text-xs font-semibold text-sambal-600">{t('game.crowBlocks')}</p>}
@@ -297,9 +304,15 @@ export function GameTable() {
 
         {/* Desktop log column */}
         {wide && (
-          <aside className="flex w-80 shrink-0 flex-col border-l border-santan-300 bg-santan-50">
+          <aside className="game-log flex shrink-0 flex-col">
             <h2 className="border-b border-santan-300 px-4 py-2 text-lg font-semibold">{t('game.log')}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">{logPanel}</div>
+            <div className="game-goal">
+              <h3 className="font-display text-base">{t('design.recipe')}</h3>
+              <div className="recipe-icons">{(['nasi', 'telur', 'kacang', 'sambal', 'timun'] as const).map(k => <CardArt key={k} kind={k} />)}</div>
+              <p>{t('design.recipeHint')}</p>
+              <p className="mt-2">{v.config.length === 'short' ? t('design.shortGoal', { n: v.config.targetPacks }) : t('design.longGoal')}</p>
+            </div>
           </aside>
         )}
       </div>
@@ -425,7 +438,7 @@ export function GameTable() {
       )}
       <HowToPlayModal open={flow?.type === 'how'} onClose={() => setFlow(null)} />
       <CardReferenceModal open={flow?.type === 'cards'} onClose={() => setFlow(null)} />
-      <SettingsModal open={flow?.type === 'settings'} onClose={() => setFlow(null)} />
+      <SettingsModal open={flow?.type === 'settings'} onClose={() => setFlow(null)} avatar={members.get(room.youId)?.avatar} onAvatarChange={(avatar) => lobby({ op: 'setAvatar', avatar })} />
 
       {v.status === 'finished' && showResults && (
         <Results
@@ -436,6 +449,6 @@ export function GameTable() {
           onLobby={() => lobby({ op: 'backToLobby' })}
         />
       )}
-    </div>
+    </div></CardRulesContext.Provider>
   );
 }

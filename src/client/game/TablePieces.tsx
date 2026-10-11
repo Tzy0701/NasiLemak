@@ -34,16 +34,16 @@ export function OpponentSeat({
       data-testid="opponent-seat"
       data-player={p.name}
       className={[
-        'relative flex shrink-0 flex-col gap-1 rounded-2xl border-2 bg-santan-50/95 p-2 shadow-card transition',
+        'opponent-seat relative flex shrink-0 flex-col gap-1 rounded-2xl border-2 p-2 shadow-card transition',
         compact ? 'w-[8.6rem]' : 'w-[10.5rem]',
-        active ? 'border-kunyit-400 ring-4 ring-kunyit-300/60' : 'border-transparent',
+        active ? 'is-active border-kunyit-400' : '',
         selectable ? 'cursor-pointer ring-4 ring-leaf-300 hover:-translate-y-0.5' : '',
         p.gone ? 'opacity-40 grayscale' : '',
       ].join(' ')}
     >
       <div className="flex items-center gap-2">
         <div className="relative">
-          <Avatar id={p.id} name={p.name} size={compact ? 30 : 36} ring={active} />
+          <Avatar id={p.id} name={p.name} size={compact ? 30 : 48} ring={active} bot={member?.isBot} avatar={member?.avatar} />
           <span
             className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${offline ? 'bg-santan-400' : 'bg-leaf-400'}`}
             title={offline ? t('common.offline') : t('common.online')}
@@ -60,7 +60,8 @@ export function OpponentSeat({
           </div>
         </div>
       </div>
-      <div className="flex min-h-[2.2rem] flex-wrap items-center gap-1">
+      <div className="opponent-hand-fan" aria-hidden="true">{Array.from({ length: Math.min(5, p.handCount) }, (_, i) => <GameCard key={i} kind="back" size="xs" />)}</div>
+      <div className="opponent-scorecards flex flex-wrap items-center gap-1">
         {p.nasiLemak.length === 0 && <span className="text-[0.65rem] italic text-kopi-700/70">{t('game.noNasiLemak')}</span>}
         {p.nasiLemak.map((nl) => (
           <GameCard key={nl.id} kind="nasiLemak" size="xs" fly={nl.hasFly} packs={nl.packs} label={nl.hasFly ? t('game.flyHere') : t('cards.nasiLemak.name')} />
@@ -111,19 +112,19 @@ export function PileStack({
         ) : (
           <div className="aspect-[5/7] w-[4.4rem] rounded-xl border-2 border-dashed border-white/40" />
         )}
-        <span className="absolute -bottom-2 -right-2 rounded-full bg-kopi-900 px-2 py-0.5 text-xs font-bold text-white shadow" data-testid={testId ? `${testId}-count` : undefined}>
+        <span className="pile-count absolute -bottom-2 -right-2 rounded-full px-2 py-0.5 text-xs font-bold shadow" data-testid={testId ? `${testId}-count` : undefined}>
           {count}
         </span>
       </div>
-      <span className="text-[0.7rem] font-bold uppercase tracking-wide text-white/90">{label}</span>
+      <span className="pile-label font-bold">{label}</span>
     </div>
   );
 }
 
 export function CenterPiles({ v, name }: { v: GameView; name: (id: string) => string }) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex items-end justify-center gap-4 sm:gap-6">
+    <div className="center-piles flex flex-col items-center gap-2">
+      <div className="center-pile-row flex items-end justify-center gap-4 sm:gap-6" data-piles={v.config.crows > 0 ? 4 : 3}>
         <PileStack label={t('game.drawPile')} count={v.drawCount} kind="back" testId="draw-pile" />
         <PileStack label={t('game.discard')} count={v.discardCount} kind="back" top={v.discardTop} testId="discard-pile" />
         <PileStack label={t('game.nlPile')} count={v.nlPileCount} kind="nasiLemak" testId="nl-pile" />

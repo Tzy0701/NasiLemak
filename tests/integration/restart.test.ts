@@ -8,6 +8,7 @@ describe('server restart (Durable Object evicted / new deployment)', () => {
     const port = 8793;
     let server = await startServer(port);
     const players = await makeRoom(server.url, 3);
+    expectOk(await players[0]!.lobby({ op: 'setAvatar', avatar: 8 }));
     expectOk(await players[0]!.lobby({ op: 'setMode', mode: 'classic-rendang' }));
     await readyAll(players);
     expectOk(await players[0]!.lobby({ op: 'start' }));
@@ -30,7 +31,9 @@ describe('server restart (Durable Object evicted / new deployment)', () => {
       expect(p.game!.hand.map((c) => c.id).sort()).toEqual(before[i]!.hand);
       expect(p.game!.turn.number).toBe(before[i]!.turn);
     });
+    expect(again[0]!.me!.avatar).toBe(8);
     await playGame(again, ['collector', 'trader', 'aggressive']);
+    for (const p of again) await p.waitFor(() => p.game?.status === 'finished', 10_000, 'finish broadcast after restart');
     expect(again[0]!.game!.status).toBe('finished');
     again.forEach((p) => p.close());
     await server.stop();

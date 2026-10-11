@@ -51,10 +51,25 @@ function rateLimited(key: string, baseLimit: number, windowMs: number): boolean 
 
 async function readJson(request: Request): Promise<Record<string, unknown> | null> {
   const len = Number(request.headers.get('content-length') ?? '0');
-  if (len > 4096) return null;
   try {
-    const text = await request.text();
-    if (text.length > 4096) return null;
+    // Drain the stream even when rejecting it, so the local runtime's pooled
+    // HTTP connection remains usable. Retain at most 4 KiB of input.
+    const reader = request.body?.getReader();
+    const decoder = new TextDecoder();
+    let bytes = 0;
+    let text = '';
+    if (reader) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes <= 4096) text += decoder.decode(value, { stream: true });
+        }
+      } finally { reader.releaseLock(); }
+    }
+    if (len > 4096 || bytes > 4096) return null;
+    text += decoder.decode();
     const body = JSON.parse(text || '{}') as unknown;
     return body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
   } catch {
@@ -100,7 +115,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     if (!body) return errorJson('bad-request', 400);
     for (let attempt = 0; attempt < 6; attempt++) {
       const code = randomRoomCode();
-      const res = await roomStub(env, code).create(code, body.name);
+      const res = await roomStub(env, code).create(code, body.name, body.avatar);
       if (res.ok) return json(res.res satisfies CreateRoomResponse, 201);
       if (res.error !== 'room-exists') return errorJson(res.error, 400);
     }
@@ -122,7 +137,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
   if (action === 'join' && request.method === 'POST') {
     const body = await readJson(request);
     if (!body) return errorJson('bad-request', 400);
-    const res = await roomStub(env, code).join(body.name);
+    const res = await roomStub(env, code).join(body.name, body.avatar);
     if (res.ok) return json(res.res, 201);
     const status = res.error === 'room-not-found' ? 404 : res.error === 'room-full' || res.error === 'game-in-progress' ? 409 : 400;
     return errorJson(res.error, status);

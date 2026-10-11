@@ -9,11 +9,12 @@ export interface DevServer {
 /** Start the real Worker (vite dev + Cloudflare plugin / workerd) with fast timers. */
 export async function startServer(port: number): Promise<DevServer> {
   const env = { ...process.env, WRANGLER_CONFIG: 'tests/wrangler.test.jsonc', PERSIST_DIR: `.wrangler/state-test-${port}` };
-  const proc = spawn('npx', ['vite', 'dev', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
+  const proc = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'dev', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
     cwd: process.cwd(),
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
+    detached: process.platform !== 'win32',
+    windowsHide: true,
   });
   let output = '';
   proc.stdout?.on('data', (d) => (output += String(d)));
@@ -36,6 +37,14 @@ export async function startServer(port: number): Promise<DevServer> {
     proc,
     stop: async () => {
       if (proc.exitCode !== null) return;
+      if (process.platform === 'win32') {
+        await new Promise<void>((resolve) => {
+          const killer = spawn('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+          killer.once('exit', () => resolve());
+          killer.once('error', () => { proc.kill(); resolve(); });
+        });
+        return;
+      }
       try {
         process.kill(-proc.pid!, 'SIGTERM');
       } catch {

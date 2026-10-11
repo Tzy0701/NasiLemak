@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AvatarPicker } from '../../components/AvatarPicker';
 import { ALL_CARD_KINDS } from '../../game/cards/catalog';
 import { OFFICIAL_BASE, OFFICIAL_RENDANG } from '../../game/rules/config';
 import { GameCard } from '../../components/GameCard';
@@ -62,7 +63,7 @@ export function CardReferenceModal({ open, onClose }: { open: boolean; onClose: 
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
         {kinds.map((k) => (
           <button key={k} className="flex flex-col items-center gap-1" onClick={() => setFocus(k)}>
-            <GameCard kind={k} size="md" />
+            <GameCard kind={k} size="md" packs={k === 'nasiLemak' ? 2 : undefined} />
             <span className="text-xs font-bold text-kopi-700">×{count(k)}</span>
           </button>
         ))}
@@ -70,7 +71,7 @@ export function CardReferenceModal({ open, onClose }: { open: boolean; onClose: 
       <Modal open={focus !== null} onClose={() => setFocus(null)} title={focus ? t(`cards.${focus}.name`) : ''}>
         {focus && (
           <div className="flex justify-center">
-            <GameCard kind={focus} size="lg" />
+            <GameCard kind={focus} size="lg" packs={focus === 'nasiLemak' ? 2 : undefined} />
           </div>
         )}
       </Modal>
@@ -87,11 +88,19 @@ function countIn(c: typeof OFFICIAL_BASE, k: ArtKind): number {
   return 0;
 }
 
-export function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SettingsModal({ open, onClose, avatar, onAvatarChange }: { open: boolean; onClose: () => void; avatar?: number; onAvatarChange?: (avatar: number) => Promise<boolean> }) {
+  const [busy, setBusy] = useState(false);
+  const choose = async (choice: number) => {
+    setBusy(true);
+    try { if (!onAvatarChange || await onAvatarChange(choice)) setPrefs({ avatar: choice }); }
+    finally { setBusy(false); }
+  };
   const prefs = usePrefs();
   return (
     <Modal open={open} onClose={onClose} title={t('settings.title')}>
       <div className="space-y-3">
+        <p className="font-semibold">Choose your avatar · 24 characters</p>
+        <AvatarPicker value={onAvatarChange ? avatar : prefs.avatar} onChange={choose} disabled={busy} />
         <Toggle label={t('settings.sound')} value={prefs.sound} onChange={(v) => setPrefs({ sound: v })} />
         <Toggle label={t('settings.reducedMotion')} value={prefs.reducedMotion} onChange={(v) => setPrefs({ reducedMotion: v })} />
         <label className="flex items-center justify-between gap-3">

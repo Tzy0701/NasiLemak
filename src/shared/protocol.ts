@@ -15,8 +15,13 @@ export const ROOM_CODE_LENGTH = 6;
 /** Unambiguous alphabet (no 0/O, 1/I/L). */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const MAX_MESSAGE_BYTES = 8192;
+export const AVATAR_COUNT = 24;
+export function isValidAvatar(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < AVATAR_COUNT;
+}
 
 export type LobbyOp =
+  | { op: 'setAvatar'; avatar: number }
   | { op: 'setReady'; ready: boolean }
   | { op: 'setMode'; mode: GameMode }
   | { op: 'setLength'; length: GameLength }
@@ -41,6 +46,8 @@ export type ClientMessage =
   | { t: 'ping' };
 
 export interface MemberView {
+  /** Optional for rooms created before avatar selection. */
+  avatar?: number;
   id: string;
   name: string;
   ready: boolean;

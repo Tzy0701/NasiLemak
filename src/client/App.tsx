@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { ArtDefs } from '../components/art/CardArt';
 import { normaliseRoomCode } from '../shared/protocol';
 import { HomePage } from './pages/HomePage';
 import { RoomPage } from './pages/RoomPage';
@@ -16,7 +15,6 @@ export function App() {
   const m = /^\/r\/([A-Za-z0-9]+)\/?$/.exec(path);
   return (
     <>
-      <ArtDefs />
       {m ? <RoomPage key={m[1]} code={normaliseRoomCode(m[1]!)} /> : <HomePage />}
     </>
   );

@@ -28,8 +28,8 @@ export class TestPlayer {
     public token: string,
   ) {}
 
-  static async create(base: string, name: string): Promise<TestPlayer> {
-    const r = await fetch(`${base}/api/rooms`, { method: 'POST', body: JSON.stringify({ name }), headers: { 'content-type': 'application/json' } });
+  static async create(base: string, name: string, avatar?: number): Promise<TestPlayer> {
+    const r = await fetch(`${base}/api/rooms`, { method: 'POST', body: JSON.stringify({ name, avatar }), headers: { 'content-type': 'application/json' } });
     if (!r.ok) throw new Error(`create failed ${r.status} ${await r.text()}`);
     const j = (await r.json()) as CreateRoomResponse;
     const p = new TestPlayer(base, name, j.code, j.playerId, j.token);
@@ -37,8 +37,8 @@ export class TestPlayer {
     return p;
   }
 
-  static async join(base: string, code: string, name: string): Promise<TestPlayer> {
-    const r = await fetch(`${base}/api/rooms/${code}/join`, { method: 'POST', body: JSON.stringify({ name }), headers: { 'content-type': 'application/json' } });
+  static async join(base: string, code: string, name: string, avatar?: number): Promise<TestPlayer> {
+    const r = await fetch(`${base}/api/rooms/${code}/join`, { method: 'POST', body: JSON.stringify({ name, avatar }), headers: { 'content-type': 'application/json' } });
     if (!r.ok) throw new Error(`join failed ${r.status} ${await r.text()}`);
     const j = (await r.json()) as CreateRoomResponse;
     const p = new TestPlayer(base, name, j.code, j.playerId, j.token);

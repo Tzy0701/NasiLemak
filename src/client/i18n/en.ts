@@ -3,6 +3,28 @@
  * them in ./index.ts to translate the whole UI.
  */
 export const en = {
+  design: {
+    hand: 'Your hand · {n} cards',
+    recipe: 'Nasi Lemak recipe',
+    recipeHint: '5 different ingredients → 1 wrapped card',
+    shortGoal: 'First to {n} valid packs wins.',
+    longGoal: 'Most valid packs when the scoring pile runs out.',
+    moves: '{n} moves left',
+    movesLabel: 'Moves left',
+    effects: {
+      supplier: 'Name one base ingredient. Take all of it from every opponent.',
+      thief: 'Take 1 random card from every opponent.',
+      wholesaler: 'Reveal 3 cards. Keep ingredients; discard the rest.',
+      officer: 'Look at one opponent’s hand. Choose up to 2 cards.',
+      makcik: 'Wrap with {n} different ingredients instead of 5.',
+      fly: 'Block an opponent’s Nasi Lemak until removed.',
+      swatter: 'Remove a Fly from your own Nasi Lemak.',
+      fan: 'Move your Fly to an opponent’s Nasi Lemak.',
+      sioyen: 'Return any Crow to the centre. Keep its ingredients.',
+      crow: 'Cannot wrap while held. Give 1 ingredient to pass it on.',
+      rendang: 'Wildcard · Any one ingredient',
+    },
+  },
   app: {
     title: 'Nasi Lemak Online',
     tagline: 'The race to wrap 5 packs of the perfect Nasi Lemak — now online with your kakis.',

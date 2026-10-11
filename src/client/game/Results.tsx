@@ -1,4 +1,4 @@
-import { Avatar } from '../../components/Avatar';
+import { RoomAvatar as Avatar } from './RoomAvatar';
 import { GameCard } from '../../components/GameCard';
 import { Modal } from '../../components/Modal';
 import { t } from '../i18n';
@@ -38,7 +38,7 @@ export function Results({
             <button className="btn-ghost" onClick={onLobby} data-testid="back-to-lobby">
               {t('results.lobby')}
             </button>
-            <button className="btn-primary" onClick={onRematch} data-testid="rematch">
+            <button className="btn-gold" onClick={onRematch} data-testid="rematch">
               {t('results.rematch')}
             </button>
           </>
@@ -49,7 +49,7 @@ export function Results({
     >
       <div className="mb-4 text-center">
         <div className="mx-auto mb-2 w-24 animate-float">
-          <GameCard kind="nasiLemak" size="md" />
+          <GameCard kind="nasiLemak" size="md" packs={2} />
         </div>
         <h2 className="font-display text-3xl font-bold text-sambal-600" data-testid="winner-headline">
           {headline}

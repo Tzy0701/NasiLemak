@@ -29,6 +29,7 @@ import {
   type RoomView,
   type ServerMessage,
   sanitiseName,
+  isValidAvatar,
 } from '../../shared/protocol';
 import { randomId, randomToken, sha256Hex, timingSafeEqualHex } from '../crypto';
 import type { Env } from '../env';
@@ -58,6 +59,7 @@ const FAST_TIMINGS: typeof TIMINGS = {
 };
 
 interface Member {
+  avatar?: number;
   id: string;
   name: string;
   tokenHash: string;
@@ -124,12 +126,14 @@ export class GameRoom extends DurableObject<Env> {
   // RPC from the Worker
   // -------------------------------------------------------------------------
 
-  async create(code: string, rawName: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
+  async create(code: string, rawName: unknown, avatar?: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
     if (this.room) return { ok: false, error: 'room-exists' };
     const name = sanitiseName(rawName);
     if (!name) return { ok: false, error: 'bad-name' };
+    if (avatar !== undefined && !isValidAvatar(avatar)) return { ok: false, error: 'bad-request' };
     const now = Date.now();
     const { member, token } = await this.newMember(name, false);
+    if (isValidAvatar(avatar)) member.avatar = avatar;
     this.room = {
       code,
       createdAt: now,
@@ -149,14 +153,16 @@ export class GameRoom extends DurableObject<Env> {
     return { ok: true, res: { code, playerId: member.id, token } };
   }
 
-  async join(rawName: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
+  async join(rawName: unknown, avatar?: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
     const room = this.room;
     if (!room) return { ok: false, error: 'room-not-found' };
     const name = sanitiseName(rawName);
     if (!name) return { ok: false, error: 'bad-name' };
+    if (avatar !== undefined && !isValidAvatar(avatar)) return { ok: false, error: 'bad-request' };
     if (room.status !== 'lobby') return { ok: false, error: 'game-in-progress' };
     if (room.members.length >= MAX_ROOM_PLAYERS) return { ok: false, error: 'room-full' };
     const { member, token } = await this.newMember(this.uniqueName(name), false);
+    if (isValidAvatar(avatar)) member.avatar = avatar;
     room.members.push(member);
     this.touch();
     await this.commit();
@@ -499,6 +505,10 @@ export class GameRoom extends DurableObject<Env> {
     const inLobby = room.status === 'lobby';
 
     switch (body.op) {
+      case 'setAvatar':
+        if (!isValidAvatar(body.avatar)) return 'bad-request';
+        me.avatar = body.avatar;
+        return null;
       case 'setReady':
         if (!inLobby) return 'not-in-lobby';
         me.ready = body.ready === true;
@@ -822,6 +832,7 @@ export class GameRoom extends DurableObject<Env> {
       members: room.members.map((m) => ({
         id: m.id,
         name: m.name,
+        ...(isValidAvatar(m.avatar) ? { avatar: m.avatar } : {}),
         ready: m.isBot ? true : m.ready,
         connected: m.isBot ? true : this.socketsFor(m.id).length > 0,
         isHost: m.id === room.hostId,

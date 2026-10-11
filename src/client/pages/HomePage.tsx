@@ -1,10 +1,10 @@
 import { type FormEvent, useState } from 'react';
-import { GameCard } from '../../components/GameCard';
-import { CardArt } from '../../components/art/CardArt';
+import { Avatar } from '../../components/Avatar';
+import { ART_ROOT, CardArt } from '../../components/art/CardArt';
 import { isValidRoomCode, normaliseRoomCode } from '../../shared/protocol';
 import { t } from '../i18n';
 import { ApiError, createRoom, joinRoom } from '../net/api';
-import { getPrefs, latestSession, saveSession, setPrefs } from '../prefs';
+import { getPrefs, latestSession, saveSession, setPrefs, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { CardReferenceModal, HowToPlayModal, SettingsModal } from '../ui/InfoModals';
 
@@ -15,28 +15,12 @@ function errorText(e: unknown): string {
 
 export function Cover() {
   return (
-    <div className="relative mx-auto h-56 w-full max-w-[22rem] sm:h-64 sm:max-w-md" aria-hidden="true">
-      <div className="absolute inset-x-6 bottom-2 h-10 rounded-[50%] bg-leaf-900/20 blur-md" />
-      <div className="absolute left-1/2 top-2 w-44 -translate-x-1/2 animate-float sm:w-52">
-        <CardArt kind="nasiLemak" className="h-full w-full drop-shadow-xl" />
-      </div>
-      {(
-        [
-          ['nasi', '-rotate-12 left-2 top-16'],
-          ['telur', 'rotate-6 left-16 top-28'],
-          ['sambal', '-rotate-3 right-16 top-28'],
-          ['timun', 'rotate-12 right-2 top-16'],
-        ] as const
-      ).map(([k, cls]) => (
-        <div key={k} className={`absolute ${cls}`}>
-          <GameCard kind={k} size="sm" />
-        </div>
-      ))}
-    </div>
+    <img src={`${ART_ROOT}/hero.png`} alt="" draggable={false} fetchPriority="high" className="home-cover mx-auto w-full max-w-lg object-contain" aria-hidden="true" />
   );
 }
 
 export function HomePage() {
+  const prefs = usePrefs();
   const [name, setName] = useState(getPrefs().lastName);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
@@ -81,14 +65,18 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-full">
-      <header className="table-felt relative overflow-hidden pb-10 pt-6 text-center text-white">
+    <div className="home-page min-h-full">
+      <header className="home-hero relative overflow-hidden pb-10 pt-6 text-center text-white">
         <div className="absolute right-3 top-3 flex gap-2">
           <button className="btn-ghost btn-sm !bg-white/15 !text-white !border-white/30" onClick={() => setModal('settings')}>
             {t('common.settings')}
           </button>
         </div>
         <Cover />
+        <button className="avatar-profile" onClick={() => setModal('settings')} data-testid="choose-avatar">
+          <Avatar id="profile" name="Your avatar" avatar={prefs.avatar} size={48} />
+          <span>Choose your avatar</span>
+        </button>
         <h1 className="mt-2 font-display text-4xl font-bold tracking-tight drop-shadow sm:text-5xl">
           Nasi Lemak <span className="text-kunyit-300">Online</span>
         </h1>
@@ -128,7 +116,7 @@ export function HomePage() {
               autoComplete="nickname"
               data-testid="create-name"
             />
-            <button className="btn-primary w-full" disabled={busy !== null} data-testid="create-room">
+          <button className="btn-gold w-full" disabled={busy !== null} data-testid="create-room">
               {busy === 'create' ? t('common.loading') : t('common.create')}
             </button>
           </form>
@@ -167,7 +155,7 @@ export function HomePage() {
         </div>
 
         <section className="mt-10">
-          <h2 className="mb-4 text-center text-3xl font-semibold text-kopi-800">{t('home.modesTitle')}</h2>
+          <h2 className="heritage-heading mb-4 text-center text-3xl font-semibold">{t('home.modesTitle')}</h2>
           <div className="grid gap-4 md:grid-cols-3">
             {(
               [
@@ -177,7 +165,7 @@ export function HomePage() {
               ] as const
             ).map(([k, art, color]) => (
               <article key={k} className="panel overflow-hidden">
-                <div className={`${color} leaf-stripes flex h-28 items-center justify-center`}>
+                <div className={`${color} mode-art flex h-28 items-center justify-center`}>
                   <CardArt kind={art} className="h-24 w-24 drop-shadow-lg" />
                 </div>
                 <div className="p-4">
@@ -188,7 +176,7 @@ export function HomePage() {
             ))}
           </div>
         </section>
-        <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-kopi-700/80">{t('app.fanMade')}</p>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-santan-200">{t('app.fanMade')}</p>
       </main>
       <HowToPlayModal open={modal === 'how'} onClose={() => setModal(null)} />
       <CardReferenceModal open={modal === 'cards'} onClose={() => setModal(null)} />

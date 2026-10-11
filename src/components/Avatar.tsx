@@ -1,25 +1,12 @@
-const COLORS = ['#d6402b', '#4f9a45', '#f2b134', '#2d7fb8', '#e8668b', '#8c4a2b', '#7a5bd6'];
-
-export function colorFor(id: string): string {
-  let h = 0;
-  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return COLORS[h % COLORS.length]!;
+import { spriteStyle } from './art/CardArt';
+import { isValidAvatar } from '../shared/protocol';
+function portraitIndex(id: string) {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return hash % 7;
 }
-
-export function Avatar({ id, name, size = 36, ring }: { id: string; name: string; size?: number; ring?: boolean }) {
-  const initials = name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join('');
-  return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full font-display font-bold text-white shadow ${ring ? 'animate-pulse-ring ring-4 ring-kunyit-400' : ''}`}
-      style={{ width: size, height: size, background: colorFor(id), fontSize: size * 0.4 }}
-      aria-hidden="true"
-    >
-      {initials || '?'}
-    </div>
-  );
+export function Avatar({ id, name, size = 36, ring, bot = false, avatar }: { id: string; name: string; size?: number; ring?: boolean; bot?: boolean; avatar?: number | null }) {
+  const index = isValidAvatar(avatar) ? avatar : bot ? 7 : portraitIndex(id);
+  const file = index < 8 ? 'avatars' : index < 16 ? 'avatars-chinese' : 'avatars-extra';
+  return <span className={`player-avatar shrink-0 ${ring ? 'animate-pulse-ring' : ''}`} data-avatar={index} style={{ width: size, height: size, ...spriteStyle(file, 4, 2, index % 8) }} title={name} aria-hidden="true" />;
 }

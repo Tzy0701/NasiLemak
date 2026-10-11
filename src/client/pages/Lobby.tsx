@@ -3,6 +3,7 @@ import { Avatar } from '../../components/Avatar';
 import { GameCard } from '../../components/GameCard';
 import { ChatIcon, CopyIcon, CrownIcon, DotIcon } from '../../components/Icons';
 import { Modal } from '../../components/Modal';
+import { CardRulesContext } from '../../components/CardRules';
 import type { BotKind } from '../../game/bots/bots';
 import { type GameConfig, type GameMode, OFFICIAL_BASE, OFFICIAL_RENDANG, deckSize } from '../../game/rules/config';
 import type { LobbyOp } from '../../shared/protocol';
@@ -56,7 +57,7 @@ export function Lobby() {
   const canStart = isHost && countOk && othersReady && customOk;
 
   return (
-    <div className="min-h-full pb-28">
+    <CardRulesContext.Provider value={cfg}><div className="lobby-page min-h-full pb-28">
       <Toasts />
       <header className="table-felt px-4 pb-6 pt-4 text-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
@@ -97,7 +98,7 @@ export function Lobby() {
           <ul className="space-y-2">
             {room.members.map((m) => (
               <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-santan-100 px-3 py-2" data-testid="member">
-                <Avatar id={m.id} name={m.name} />
+                <Avatar id={m.id} name={m.name} size={48} bot={m.isBot} avatar={m.avatar} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 truncate font-bold">
                     {m.isHost && <CrownIcon />}
@@ -233,7 +234,7 @@ export function Lobby() {
                         ? t('errors.custom-invalid')
                         : ''}
                 </span>
-                <button className="btn-primary min-w-40" disabled={!canStart} onClick={() => send({ op: 'start' })} data-testid="start-game">
+                <button className="btn-gold min-w-40" disabled={!canStart} onClick={() => send({ op: 'start' })} data-testid="start-game">
                   {t('lobby.start')}
                 </button>
               </>
@@ -260,7 +261,7 @@ export function Lobby() {
 
       <HowToPlayModal open={modal === 'how'} onClose={() => setModal(null)} />
       <CardReferenceModal open={modal === 'cards'} onClose={() => setModal(null)} />
-      <SettingsModal open={modal === 'settings'} onClose={() => setModal(null)} />
+      <SettingsModal open={modal === 'settings'} onClose={() => setModal(null)} avatar={me.avatar} onAvatarChange={(avatar) => send({ op: 'setAvatar', avatar })} />
       <Modal
         open={modal === 'leave'}
         onClose={() => setModal(null)}
@@ -278,6 +279,6 @@ export function Lobby() {
       >
         {t('lobby.leaveConfirm')}
       </Modal>
-    </div>
+    </div></CardRulesContext.Provider>
   );
 }

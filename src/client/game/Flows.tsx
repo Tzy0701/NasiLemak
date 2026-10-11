@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Avatar } from '../../components/Avatar';
+import { RoomAvatar as Avatar } from './RoomAvatar';
 import { GameCard } from '../../components/GameCard';
 import { Modal } from '../../components/Modal';
 import { BASE_INGREDIENTS, type Card, type CardKind, isIngredient, isTradeable } from '../../game/cards/catalog';

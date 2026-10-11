@@ -1,0 +1,115 @@
+{
+  "version": "heritage-v1",
+  "generator": "built-in image_gen",
+  "sources": [
+    "User-approved Concept A cards and Concept D environment",
+    "Faculty of Fun physical card framework"
+  ],
+  "avatars": {
+    "count": 24,
+    "atlases": [
+      {
+        "file": "avatars.png",
+        "indices": [
+          0,
+          7
+        ],
+        "columns": 4,
+        "rows": 2
+      },
+      {
+        "file": "avatars-chinese.png",
+        "indices": [
+          8,
+          15
+        ],
+        "columns": 4,
+        "rows": 2,
+        "topRow": "4 Chinese men",
+        "bottomRow": "4 Chinese women"
+      },
+      {
+        "file": "avatars-extra.png",
+        "indices": [
+          16,
+          23
+        ],
+        "columns": 4,
+        "rows": 2
+      }
+    ],
+    "selection": "Saved per device; validated and persisted in room member data. Updates broadcast to every connected player."
+  },
+  "assets": [
+    {
+      "file": "table-desktop.png",
+      "transparent": false,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Generate ONLY a clean wide 16:10 full-bleed TABLE BACKGROUND. Broad continuous dark banana-leaf green mat in center covering 88% of canvas, subtle real leaf veins and rich hand-painted texture. Dark wood perimeter, rattan corners, tropical leaves and restrained white frangipani entirely confined to outer 6% edges. Low detail low contrast central play surface. No cards, no piles, no avatar, no icons, no panels, no labels, no buttons, no banner, no embedded shadow of missing UI. This is a continuous pure scene asset underneath real interactive controls."
+    },
+    {
+      "file": "table-mobile.png",
+      "transparent": false,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Generate ONLY a clean tall portrait 9:16 full-bleed TABLE BACKGROUND for mobile. Rich deep green continuous banana-leaf mat covers entire central 90% with restrained veins and calm contrast. Narrow dark wood/rattan border, occasional white frangipani and leaves entirely within outside 5% edges. No panels, no phones, no UI, no cards, no avatars, no text. Nothing on center. Composition matches approved desktop background."
+    },
+    {
+      "file": "ingredients.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Transparent illustration SPRITE ATLAS with EXACT regular 3 columns by2 rows, six equal square cells, landscape1536x1024. NO visible grid. Each subject centered within its own cell, fitting inside middle80%, ample transparent gutter at least10% on each side, absolutely no overlap into another cell. Six subjects in strict row-major order: top-left coconut rice dome on one little banana leaf; top-middle three halved boiled eggs; top-right roasted peanuts on small leaf; bottom-left glossy red sambal with anchovies clearly mixed in in shallow wooden bowl; bottom-middle fresh cucumber slices on small leaf; bottom-right TWO CHICKEN drumsticks covered in rich Rendang sauce on little leaf. Copy approved illustrations' detail and warm friendly rendering. Outer and between subjects genuinely transparent. No shadows outside subject cell, no background, no card rim, no wording, no corner decorations. Each cell only one ingredient cluster."
+    },
+    {
+      "file": "characters.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Transparent character illustration SPRITE ATLAS EXACT regular3columns2rows, six equal squarecells, landscape1536x1024, no visible grid. First five cells fully contain upper-body Malaysian characters; sixth bottomright completely empty transparent. Strong outlines as approved art. Each portrait centered in middle80% of cell with transparent10%gutters and no bleed. Row-major top-left Supplier cheerful moustached Malay grocer with songkok, orange batik and basket of ingredients; top-middle Thief HUMAN with bluebeanie eyemask red shirt and sack, mischievous; top-right Wholesaler cheerful curly-haired older shopkeeper in purple shirt holding ingredientcrate; bottom-left Officer stern moustached uniformed official navy cap with clipboard; bottom-middle Mak Cik older Malay woman greenhijab purple blouse wrapping green riceparcel. NO food or props outside their cells, no ribbons, no footer, no text, no borders, no backdrop. Only cutoutcharacters and held props, true transparent."
+    },
+    {
+      "file": "tools.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Transparent illustration SPRITE ATLAS EXACT2columns2rows, fourequal squarecells, square1536x1536. No gridvisible. All subjects centered in middle80%cell with10% transparent margins, no bleed. Row-major top-left single cheeky black Fly with bigwhitewings; top-right bluemesh Fly Swatter angled diagonally; bottom-left woven palm Fan with a thin blowing-air curl, NO fly in this fan cell; bottom-right Si Oyen fluffy orange cat chasing a small blue-black crow carrying a tied green ingredientbundle. Strict subjects positions. No cardborders, no lettering, no titles, no colorbackground or cards. Actual transparent."
+    },
+    {
+      "file": "parcel.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Exactly ONE closed triangular Malaysian nasi lemak parcel folded in banana leaf and brown wrappingpaper, small knotted plant tie, threequarter view, strong recognizable green silhouette and rich gold-green painterlydetail. Isolated cutout centered on genuinely transparent background, fills80% ofsquarecanvas, no otherobjects, no cards, no numbers, no labels. Must resemble the one-pack scoring card in reference."
+    },
+    {
+      "file": "crow.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Exactly ONE cheeky blue-black crow with wings partially spread, perched beside a small tied green ingredientbundle, recognizable cute darkbird with amber eye in same approved style. Isolated transparent cutout, centered middle80%ofsquare, no cards, no foodplate, no lettering or cost. True transparency."
+    },
+    {
+      "file": "draw-back.png",
+      "transparent": false,
+      "prompt": "Production full-bleed card BACK only, portrait2:3 aspect. Match the fourth card in reference: dark forest-green banana-leaf botanical pattern, muted golden fine flower/botanical motif at corners, narrow rounded creamrim just inside entireimage, central GOLD frangipani flower emblem. NO written words or logo or number, no characters, no parcels, no visible card identity. Singlecard back fills entirecanvas, straight front view, no tilt, no table or outside margin, no shadows. Handpainted rich texture and cream/gold edge, not vector."
+    },
+    {
+      "file": "score-back.png",
+      "transparent": false,
+      "prompt": "Production full-bleed SCORING CARD BACK only, portrait2:3. Match fifth reference card: golden warm yellow engraved botanical banana-leaf pattern, cream softlyrounded narrow edge, central small darkgreen MEDALLION containing an abstract single wrappedparcel emblem. NO words, NO numerals, NO quantity or different scoring variants, no character, no outside table or margin. Straight front view fillscanvas, consistent muted warmgold design. All hidden scoringcards will use exactly this asset."
+    },
+    {
+      "file": "paper.png",
+      "transparent": false,
+      "prompt": "Production textureasset only: evenly illuminated warm ivory/cream lightly fibrous handmade paper, very subtle naturally aged watercolor mottling. Uniform flat texure fills squarecanvas to all edges, clean center, no edges, no border, no tear, no decoration, no writing, no icons, no panels, no shadows. Lowcontrast seamless-feeling useful as card and modal surface background."
+    },
+    {
+      "file": "hero.png",
+      "transparent": true,
+      "prompt": "Production raster art for Nasi Lemak Online. Match the approved reference precisely: Concept A warm expressive hand-painted illustration, cream paper and rounded friendly outlines, Concept D deep banana-leaf greens, dark warm wood, muted antique gold, rattan and white frangipani. Original physical card framework remains in live HTML so these assets must have NO text, NO numbers, NO card borders, NO UI, NO watermarks. Clean separable game artwork, polished at high resolution. Production HOME HERO illustration isolated on genuinely transparent background. Cozy nasi lemak meal on broadbanana-leaf: whitericedome, boiledhalfegg, red Sambal Bilis with littleanchovies, brownpeanuts and freshcucumbers, with ONE closedgreen triangular wrappedparcel prominentlybehind. Expressive richlypainted appetizing detail, wide landscape3:2 composition. No surroundings no table no text no numbers no cards no border. Natural restrainedgroundshadow under meal only, transparent outside. Allfiveingredients present. Same artstyle as approved review."
+    },
+    {
+      "file": "avatars.png",
+      "transparent": true,
+      "prompt": "Edit this Nasi Lemak game avatar atlas. Keep EXACT same 4 columns x 2 rows, equally sized square cells, 2:1 canvas, eight individual circles with gold rims and green banana leaf / white frangipani backgrounds; transparent outside circles. Keep each character's ethnicity, age, gender, clothing, hair, glasses and identity and match warm painted illustration style. CHANGE head orientation and expressions markedly so portraits are individually distinctive, NOT all looking same direction. Row1 cell1 turn LEFT threequarter smiling softly; cell2 FRONT straight into camera calm confident closed-mouth smile; cell3 turn RIGHT nearprofile cheerful looking sideways; cell4 head tilted LEFT laughing with eyesclosed. Row2 cell1 turn LEFT nearprofile thoughtful smallsmile; cell2 FRONT winking mischievously one eyebrowraised; cell3 glance RIGHT over shoulder headtilted joyful; cell4 FRONT friendly gentle smile (if chefrobot keeprobotandthumbsup). Deliberately visible left/right/front variety with subtle shoulders and poses. No words, no labels, no numbers, exactly8 circles in same consistent uniformgrid. Do not change the background or ethnic identities. "
+    },
+    {
+      "file": "avatars-chinese.png",
+      "transparent": true,
+      "prompt": "Edit this Nasi Lemak game avatar atlas. Keep EXACT same 4 columns x 2 rows, equally sized square cells, 2:1 canvas, eight individual circles with gold rims and green banana leaf / white frangipani backgrounds; transparent outside circles. Keep each character's ethnicity, age, gender, clothing, hair, glasses and identity and match warm painted illustration style. CHANGE head orientation and expressions markedly so portraits are individually distinctive, NOT all looking same direction. Row1 cell1 turn LEFT threequarter smiling softly; cell2 FRONT straight into camera calm confident closed-mouth smile; cell3 turn RIGHT nearprofile cheerful looking sideways; cell4 head tilted LEFT laughing with eyesclosed. Row2 cell1 turn LEFT nearprofile thoughtful smallsmile; cell2 FRONT winking mischievously one eyebrowraised; cell3 glance RIGHT over shoulder headtilted joyful; cell4 FRONT friendly gentle smile (if chefrobot keeprobotandthumbsup). Deliberately visible left/right/front variety with subtle shoulders and poses. No words, no labels, no numbers, exactly8 circles in same consistent uniformgrid. Do not change the background or ethnic identities. All four top row people remain Chinese men, allfour bottomrowpeople remain Chinese women."
+    },
+    {
+      "file": "avatars-extra.png",
+      "transparent": true,
+      "prompt": "Edit this Nasi Lemak game avatar atlas. Keep EXACT same 4 columns x 2 rows, equally sized square cells, 2:1 canvas, eight individual circles with gold rims and green banana leaf / white frangipani backgrounds; transparent outside circles. Keep each character's ethnicity, age, gender, clothing, hair, glasses and identity and match warm painted illustration style. CHANGE head orientation and expressions markedly so portraits are individually distinctive, NOT all looking same direction. Row1 cell1 turn LEFT threequarter smiling softly; cell2 FRONT straight into camera calm confident closed-mouth smile; cell3 turn RIGHT nearprofile cheerful looking sideways; cell4 head tilted LEFT laughing with eyesclosed. Row2 cell1 turn LEFT nearprofile thoughtful smallsmile; cell2 FRONT winking mischievously one eyebrowraised; cell3 glance RIGHT over shoulder headtilted joyful; cell4 FRONT friendly gentle smile (if chefrobot keeprobotandthumbsup). Deliberately visible left/right/front variety with subtle shoulders and poses. No words, no labels, no numbers, exactly8 circles in same consistent uniformgrid. Do not change the background or ethnic identities. "
+    }
+  ]
+}
