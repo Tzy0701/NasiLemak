@@ -1,0 +1,198 @@
+import { type FormEvent, useState } from 'react';
+import { GameCard } from '../../components/GameCard';
+import { CardArt } from '../../components/art/CardArt';
+import { isValidRoomCode, normaliseRoomCode } from '../../shared/protocol';
+import { t } from '../i18n';
+import { ApiError, createRoom, joinRoom } from '../net/api';
+import { getPrefs, latestSession, saveSession, setPrefs } from '../prefs';
+import { navigate } from '../router';
+import { CardReferenceModal, HowToPlayModal, SettingsModal } from '../ui/InfoModals';
+
+function errorText(e: unknown): string {
+  const code = e instanceof ApiError ? e.code : 'network';
+  return t(`errors.${code}`) !== `errors.${code}` ? t(`errors.${code}`) : t('errors.unknown', { code });
+}
+
+export function Cover() {
+  return (
+    <div className="relative mx-auto h-56 w-full max-w-md sm:h-64" aria-hidden="true">
+      <div className="absolute inset-x-6 bottom-2 h-10 rounded-[50%] bg-leaf-900/20 blur-md" />
+      <div className="absolute left-1/2 top-2 w-44 -translate-x-1/2 animate-float sm:w-52">
+        <CardArt kind="nasiLemak" className="h-full w-full drop-shadow-xl" />
+      </div>
+      {(
+        [
+          ['nasi', '-rotate-12 left-0 top-16'],
+          ['telur', 'rotate-6 left-16 top-28'],
+          ['sambal', '-rotate-3 right-16 top-28'],
+          ['timun', 'rotate-12 right-0 top-16'],
+        ] as const
+      ).map(([k, cls]) => (
+        <div key={k} className={`absolute ${cls}`}>
+          <GameCard kind={k} size="sm" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function HomePage() {
+  const [name, setName] = useState(getPrefs().lastName);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState<'create' | 'join' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState<'how' | 'cards' | 'settings' | null>(null);
+  const last = latestSession();
+
+  async function onCreate(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return setError(t('errors.bad-name'));
+    setBusy('create');
+    setError(null);
+    try {
+      const res = await createRoom(name.trim());
+      setPrefs({ lastName: name.trim() });
+      saveSession(res);
+      navigate(`/r/${res.code}`);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onJoin(e: FormEvent) {
+    e.preventDefault();
+    const c = normaliseRoomCode(code);
+    if (!isValidRoomCode(c)) return setError(t('errors.room-not-found'));
+    if (!name.trim()) return setError(t('errors.bad-name'));
+    setBusy('join');
+    setError(null);
+    try {
+      const res = await joinRoom(c, name.trim());
+      setPrefs({ lastName: name.trim() });
+      saveSession(res);
+      navigate(`/r/${res.code}`);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="min-h-full">
+      <header className="table-felt leaf-stripes relative overflow-hidden pb-10 pt-6 text-center text-white">
+        <div className="absolute right-3 top-3 flex gap-2">
+          <button className="btn-ghost btn-sm !bg-white/15 !text-white !border-white/30" onClick={() => setModal('settings')}>
+            {t('common.settings')}
+          </button>
+        </div>
+        <Cover />
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-tight drop-shadow sm:text-5xl">
+          Nasi Lemak <span className="text-kunyit-300">Online</span>
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl px-4 text-leaf-50/90">{t('app.tagline')}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <button className="btn-gold btn-sm" onClick={() => setModal('how')}>
+            {t('common.howToPlay')}
+          </button>
+          <button className="btn-ghost btn-sm" onClick={() => setModal('cards')}>
+            {t('common.cards')}
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto -mt-6 max-w-5xl px-4 pb-16">
+        {error && (
+          <div role="alert" className="mb-4 rounded-2xl bg-sambal-500 px-4 py-3 font-semibold text-white shadow">
+            {error}
+          </div>
+        )}
+        {last && (
+          <button className="btn-leaf mb-4 w-full" onClick={() => navigate(`/r/${last.code}`)}>
+            {t('home.rejoin', { code: last.code })}
+          </button>
+        )}
+        <div className="grid gap-4 md:grid-cols-2">
+          <form onSubmit={onCreate} className="panel p-5" data-testid="create-form">
+            <h2 className="text-2xl font-semibold text-sambal-600">{t('home.createTitle')}</h2>
+            <p className="mb-4 text-sm text-kopi-700">{t('home.createHint')}</p>
+            <label className="mb-1 block text-sm font-bold">{t('common.yourName')}</label>
+            <input
+              className="input mb-4"
+              value={name}
+              maxLength={20}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('common.namePlaceholder')}
+              autoComplete="nickname"
+              data-testid="create-name"
+            />
+            <button className="btn-primary w-full" disabled={busy !== null} data-testid="create-room">
+              {busy === 'create' ? t('common.loading') : t('common.create')}
+            </button>
+          </form>
+          <form onSubmit={onJoin} className="panel p-5" data-testid="join-form">
+            <h2 className="text-2xl font-semibold text-leaf-700">{t('home.joinTitle')}</h2>
+            <p className="mb-4 text-sm text-kopi-700">{t('home.joinHint')}</p>
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-bold">{t('common.roomCode')}</label>
+                <input
+                  className="input font-display uppercase tracking-[0.2em]"
+                  value={code}
+                  maxLength={6}
+                  onChange={(e) => setCode(normaliseRoomCode(e.target.value))}
+                  placeholder={t('common.codePlaceholder')}
+                  autoCapitalize="characters"
+                  data-testid="join-code"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-bold">{t('common.yourName')}</label>
+                <input
+                  className="input"
+                  value={name}
+                  maxLength={20}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('common.namePlaceholder')}
+                  data-testid="join-name"
+                />
+              </div>
+            </div>
+            <button className="btn-leaf w-full" disabled={busy !== null} data-testid="join-room">
+              {busy === 'join' ? t('common.loading') : t('common.join')}
+            </button>
+          </form>
+        </div>
+
+        <section className="mt-10">
+          <h2 className="mb-4 text-center text-3xl font-semibold text-kopi-800">{t('home.modesTitle')}</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {(
+              [
+                ['modeBase', 'nasi', 'bg-leaf-500'],
+                ['modeRendang', 'rendang', 'bg-rendang-500'],
+                ['modeCustom', 'makcik', 'bg-kunyit-400'],
+              ] as const
+            ).map(([k, art, color]) => (
+              <article key={k} className="panel overflow-hidden">
+                <div className={`${color} leaf-stripes flex h-28 items-center justify-center`}>
+                  <CardArt kind={art} className="h-24 w-24 drop-shadow-lg" />
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold">{t(`home.${k}`)}</h3>
+                  <p className="mt-1 text-sm text-kopi-700">{t(`home.${k}Desc`)}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-kopi-700/80">{t('app.fanMade')}</p>
+      </main>
+      <HowToPlayModal open={modal === 'how'} onClose={() => setModal(null)} />
+      <CardReferenceModal open={modal === 'cards'} onClose={() => setModal(null)} />
+      <SettingsModal open={modal === 'settings'} onClose={() => setModal(null)} />
+    </div>
+  );
+}

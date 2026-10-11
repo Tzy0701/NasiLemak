@@ -1,0 +1,40 @@
+{
+  "name": "nasi-lemak-online",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Private online multiplayer adaptation of Nasi Lemak: The Game + The Rendang Expansion, running on Cloudflare Workers + Durable Objects.",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "simulate": "tsx scripts/simulate.ts",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types src/server/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.63.1",
+    "@cloudflare/workers-types": "5.20261011.1",
+    "@playwright/test": "1.56.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
+  }
+}

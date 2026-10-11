@@ -1,0 +1,203 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fredoka', ui-rounded, system-ui, sans-serif;
+  --font-sans: 'Nunito', ui-rounded, system-ui, sans-serif;
+
+  --color-leaf-50: #eef8ea;
+  --color-leaf-100: #d7efcc;
+  --color-leaf-200: #b2df9c;
+  --color-leaf-300: #86c96a;
+  --color-leaf-400: #62b148;
+  --color-leaf-500: #4f9a45;
+  --color-leaf-600: #3a7a33;
+  --color-leaf-700: #2f6d2a;
+  --color-leaf-800: #234f20;
+  --color-leaf-900: #183816;
+
+  --color-sambal-400: #ef6a52;
+  --color-sambal-500: #d6402b;
+  --color-sambal-600: #b8301d;
+  --color-sambal-700: #8f2416;
+
+  --color-santan-50: #fffdf7;
+  --color-santan-100: #fff8ea;
+  --color-santan-200: #f6eed9;
+  --color-santan-300: #eadfc4;
+  --color-santan-400: #d9c9a3;
+
+  --color-kunyit-300: #ffd86b;
+  --color-kunyit-400: #f2b134;
+  --color-kunyit-500: #d48a1a;
+
+  --color-rendang-500: #8c4a2b;
+  --color-rendang-700: #5a240f;
+
+  --color-kopi-700: #4a3426;
+  --color-kopi-800: #3a281d;
+  --color-kopi-900: #2b1a12;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 6px 14px -6px rgba(43, 26, 18, 0.35),
+    0 2px 4px rgba(43, 26, 18, 0.12);
+  --shadow-soft: 0 10px 30px -12px rgba(43, 26, 18, 0.35);
+
+  --animate-pop: pop 260ms cubic-bezier(0.2, 1.4, 0.4, 1);
+  --animate-float: float 3.2s ease-in-out infinite;
+  --animate-slide-up: slide-up 320ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  --animate-pulse-ring: pulse-ring 1.6s ease-out infinite;
+  --animate-deal: deal 380ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.85);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes slide-up {
+    0% {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(242, 177, 52, 0.7);
+    }
+    100% {
+      box-shadow: 0 0 0 12px rgba(242, 177, 52, 0);
+    }
+  }
+  @keyframes deal {
+    0% {
+      transform: translateY(-30px) rotate(-6deg) scale(0.9);
+      opacity: 0;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-santan-100 font-sans text-kopi-900 antialiased;
+    background-image: radial-gradient(circle at 20% 10%, rgba(255, 216, 107, 0.25), transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(79, 154, 69, 0.18), transparent 45%);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-kunyit-400);
+    outline-offset: 2px;
+  }
+}
+
+@utility btn {
+  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-2xl px-4 py-2 font-display text-base font-semibold transition active:scale-[0.97] disabled:opacity-45 disabled:active:scale-100;
+}
+@utility btn-primary {
+  @apply btn bg-sambal-500 text-white shadow-[0_4px_0_var(--color-sambal-700)] hover:bg-sambal-400;
+}
+@utility btn-leaf {
+  @apply btn bg-leaf-500 text-white shadow-[0_4px_0_var(--color-leaf-700)] hover:bg-leaf-400;
+}
+@utility btn-gold {
+  @apply btn bg-kunyit-400 text-kopi-900 shadow-[0_4px_0_var(--color-kunyit-500)] hover:bg-kunyit-300;
+}
+@utility btn-ghost {
+  @apply btn border-2 border-santan-300 bg-santan-50 text-kopi-800 hover:bg-white;
+}
+@utility btn-sm {
+  @apply min-h-9 rounded-xl px-3 py-1 text-sm;
+}
+@utility panel {
+  @apply rounded-3xl border border-santan-300/80 bg-santan-50/95 shadow-soft;
+}
+@utility input {
+  @apply min-h-11 w-full rounded-2xl border-2 border-santan-300 bg-white px-4 py-2 text-lg text-kopi-900 outline-none placeholder:text-santan-400 focus:border-kunyit-400;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold;
+}
+@utility table-felt {
+  background: radial-gradient(ellipse at center, #3e8a37 0%, #2f6d2a 55%, #234f20 100%);
+}
+@utility table-wood {
+  background: linear-gradient(180deg, #8c5a33, #6e4426);
+}
+
+/* Banana-leaf stripes used on headers */
+.leaf-stripes {
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.07) 0 10px,
+    rgba(255, 255, 255, 0) 10px 22px
+  );
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.safe-top {
+  padding-top: max(0.25rem, env(safe-area-inset-top));
+}
+
+/* Reduced motion: user setting or OS preference */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
