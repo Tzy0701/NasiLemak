@@ -8,6 +8,7 @@ import { navigate } from '../router';
 import { GameTable } from '../game/GameTable';
 import { Lobby } from './Lobby';
 import { Cover } from './HomePage';
+import { LanguageButton } from '../ui/LanguageButton';
 
 interface RoomCtx {
   client: RoomClient;
@@ -41,7 +42,7 @@ function ConnectedRoom({ code, token }: { code: string; token: string }) {
   }
   if (!snap.room) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="connection-view flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
         <Cover />
         <p className="animate-pulse font-display text-xl text-leaf-700">{t('game.connection.connecting')}</p>
       </div>
@@ -71,7 +72,8 @@ function Ended({ code, reason }: { code: string; reason: NonNullable<RoomSnapsho
   }, [code]);
   const msg = t(`room.${reason === 'bad-token' ? 'badToken' : reason === 'room-closed' ? 'closed' : reason}`);
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="room-entry flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="entry-language"><LanguageButton /></div>
       <p className="font-display text-2xl">{msg}</p>
       <div className="flex gap-2">
         {reason === 'bad-token' && (
@@ -120,7 +122,8 @@ function JoinForm({ code, onJoined }: { code: string; onJoined: () => void }) {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center p-4">
+    <div className="room-entry flex min-h-full flex-col items-center justify-center p-4">
+      <div className="entry-language"><LanguageButton /></div>
       <Cover />
       <form onSubmit={submit} className="panel w-full max-w-md p-6" data-testid="room-join-form">
         <h1 className="mb-1 text-3xl font-semibold text-leaf-700">{t('join.title', { code })}</h1>

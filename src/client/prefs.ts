@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from 'react';
 import { isValidAvatar } from '../shared/protocol';
+import { setLocale, type Locale } from './i18n';
 
 /** Per-device preferences and room sessions (localStorage). */
 export interface Prefs {
+  language: Locale;
   avatar?: number;
   sound: boolean;
   reducedMotion: boolean;
@@ -21,7 +23,10 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
-let prefs: Prefs = read<Prefs>(PREFS_KEY, { sound: true, reducedMotion: false, lastName: '' });
+const defaultLanguage: Locale = typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh' : 'en';
+let prefs: Prefs = read<Prefs>(PREFS_KEY, { language: defaultLanguage, sound: true, reducedMotion: false, lastName: '' });
+if (prefs.language !== 'zh' && prefs.language !== 'en') prefs.language = defaultLanguage;
+setLocale(prefs.language);
 if (!isValidAvatar(prefs.avatar)) delete prefs.avatar;
 const listeners = new Set<() => void>();
 
@@ -31,6 +36,7 @@ export function getPrefs(): Prefs {
 
 export function setPrefs(patch: Partial<Prefs>): void {
   prefs = { ...prefs, ...patch };
+  setLocale(prefs.language);
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {

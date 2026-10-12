@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './heritage.css';
+@import './experience.css';
 
 @theme {
   --font-display: 'Fredoka', ui-rounded, system-ui, sans-serif;

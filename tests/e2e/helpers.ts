@@ -152,5 +152,7 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
   catch (error) { if (!(await isMyTurn(page))) return 'ended'; throw error; }
   const confirm = page.getByTestId('confirm-end-turn');
   if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  // Wait for the authoritative turn change before the driver picks another seat.
+  await expect.poll(() => isMyTurn(page)).toBe(false);
   return 'ended';
 }

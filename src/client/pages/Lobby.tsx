@@ -14,6 +14,7 @@ import { Toasts, pushError, pushToast } from '../ui/toast';
 import { CustomRulesEditor } from './CustomRulesEditor';
 import { useRoom } from './RoomPage';
 import { navigate } from '../router';
+import { LanguageButton } from '../ui/LanguageButton';
 
 const MODES: { id: GameMode; key: string; cfg?: GameConfig }[] = [
   { id: 'classic-base', key: 'modeBase', cfg: OFFICIAL_BASE },
@@ -62,9 +63,10 @@ export function Lobby() {
       <header className="table-felt px-4 pb-6 pt-4 text-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <button className="font-display text-xl font-bold" onClick={() => navigate('/')}>
-            Nasi Lemak <span className="text-kunyit-300">Online</span>
+            {t('app.title')}
           </button>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
+            <LanguageButton />
             <button className="btn-ghost btn-sm" onClick={() => setModal('how')}>
               {t('common.howToPlay')}
             </button>
@@ -85,7 +87,7 @@ export function Lobby() {
             <button className="btn-gold btn-sm" onClick={copy} data-testid="copy-link">
               <CopyIcon /> {copied ? t('lobby.copied') : t('lobby.copyLink')}
             </button>
-            <a className="btn btn-sm bg-[#25d366] text-white shadow-[0_4px_0_#128c4a]" href={whatsapp} target="_blank" rel="noreferrer">
+            <a className="share-button btn btn-sm bg-[#25d366] text-white shadow-[0_4px_0_#128c4a]" href={whatsapp} target="_blank" rel="noreferrer">
               <ChatIcon /> {t('lobby.share')}
             </a>
           </div>

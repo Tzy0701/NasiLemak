@@ -1,21 +1,25 @@
 import { useSyncExternalStore } from 'react';
 import { en } from './en';
+import { zh } from './zh';
 
 /**
  * Minimal i18n: dotted keys + {param} interpolation. Add more locales to
  * `LOCALES` (same shape as `en`) – missing keys fall back to English.
  */
-type Locale = 'en';
-const LOCALES: Record<Locale, unknown> = { en };
-export const AVAILABLE_LOCALES: { id: Locale; label: string }[] = [{ id: 'en', label: 'English' }];
+export type Locale = 'en' | 'zh';
+const LOCALES: Record<Locale, unknown> = { en, zh };
+export const AVAILABLE_LOCALES: { id: Locale; label: string }[] = [{ id: 'zh', label: '简体中文' }, { id: 'en', label: 'English' }];
 
 let current: Locale = 'en';
 const listeners = new Set<() => void>();
 
 export function setLocale(l: Locale): void {
+  if (current === l) return;
   current = l;
   for (const f of listeners) f();
 }
+
+export function getLocale(): Locale { return current; }
 
 export function useLocale(): Locale {
   return useSyncExternalStore(

@@ -8,6 +8,7 @@ export async function layoutProblems(page: Page) {
     const intersects = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
     const visible = (el: Element) => { const r = rect(el); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
     for (const card of Array.from(document.querySelectorAll('.game-card:not(.card-hidden)'))) {
+      if (!visible(card)) continue;
       const face = card.querySelector('.card-face')!;
       const texts = Array.from(card.querySelectorAll('.card-ribbon span,.card-ribbon small,.ingredient-name strong,.ingredient-name small,.card-effect,.pack-value')).filter(visible);
       for (const text of texts) {
@@ -21,10 +22,10 @@ export async function layoutProblems(page: Page) {
       const title = card.querySelector('.card-ribbon');
       const art = card.querySelector('.card-picture');
       if (art && (rect(art).height < 8 || rect(art).width < 8))
-        issues.push(`${card.getAttribute('data-kind')}: picture has no room`);
+        issues.push(`${card.getAttribute('data-kind')}: picture has no room (${rect(art).width.toFixed(1)} × ${rect(art).height.toFixed(1)} in ${card.parentElement?.className})`);
       const image = card.querySelector('.card-main-art');
       if (image && (rect(image).height < 8 || rect(image).width < 8))
-        issues.push(`${card.getAttribute('data-kind')}: artwork is hidden`);
+        issues.push(`${card.getAttribute('data-kind')}: artwork is hidden (${rect(image).width.toFixed(1)} × ${rect(image).height.toFixed(1)} in ${card.parentElement?.className})`);
       if (title && art && intersects(rect(title), rect(art)))
         issues.push(`${card.getAttribute('data-kind')}: title overlaps picture`);
       const name = card.querySelector('.ingredient-name');
@@ -75,6 +76,10 @@ export async function layoutProblems(page: Page) {
       for (const seat of seats)
         if (piles && intersects(boardRect(seat), boardRect(piles)))
           issues.push('opponent overlaps centre');
+      for (let i = 0; i < seats.length; i++)
+        for (let j = i + 1; j < seats.length; j++)
+          if (intersects(boardRect(seats[i]!), boardRect(seats[j]!)))
+            issues.push('opponent seats overlap');
       const action = stage.querySelector('[data-testid=action-end-turn]');
       if (action && (rect(action).bottom > innerHeight + 1 || rect(action).right > innerWidth + 1))
         issues.push('end turn outside viewport');

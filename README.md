@@ -15,8 +15,10 @@ friends in the browser — phone or desktop, no accounts.
   to each player over WebSockets (Hibernation API, SQLite-backed storage).
 - Refresh / reconnect safe: your seat is tied to a secret token stored in your
   browser; state is persisted after every action.
-- Original card art (inline SVG), mobile-first layout, English UI with all
-  strings in `src/client/i18n/en.ts` ready for 中文 / Bahasa Melayu.
+- Original heritage PNG artwork and 24 selectable avatars, a responsive
+  clockwise table, English / 简体中文 UI with saved per-device language choices.
+- Readable card values and live parcel/Crow inspectors, server-event card
+  animations and a celebratory result screen. See [UI experience](docs/UI_EXPERIENCE.md).
 
 Rules notes and the few interpretations we had to make: **[docs/RULES.md](docs/RULES.md)**.
 House-rule balance research: **[docs/BALANCE.md](docs/BALANCE.md)**.
@@ -38,7 +40,7 @@ src/
   shared/          WebSocket/HTTP protocol types
   server/          Cloudflare Worker (JSON API) + rooms/GameRoom Durable Object
   client/          React app (pages, game table, i18n, network client)
-  components/      Shared UI: cards, SVG art, modal, icons
+  components/      Shared UI: cards, raster art, avatars, modal, icons
 tests/
   unit/            Vitest: rules, views, custom rules, fuzzed bot games
   integration/     Vitest: real WebSocket clients against the real Worker + DO

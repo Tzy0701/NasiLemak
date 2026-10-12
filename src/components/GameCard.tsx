@@ -28,7 +28,7 @@ export function GameCard({ kind, size = 'md', selected, dimmed, highlight, packs
   const detail = size === 'lg' || showText;
   const onKey = (e: KeyboardEvent) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(e as unknown as MouseEvent); } };
   return <div role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} aria-label={label ?? `${name}${packs !== undefined ? ` (${packs})` : ''}`}
-    aria-pressed={onClick && selected !== undefined ? selected : undefined} data-testid={testId} data-kind={kind} data-face={hidden ? 'back' : 'front'} onClick={onClick} onKeyDown={onKey}
+    aria-pressed={onClick && selected !== undefined ? selected : undefined} data-testid={testId} data-kind={kind} data-face={hidden ? 'back' : 'front'} data-fly={fly || undefined} onClick={onClick} onKeyDown={onKey}
     className={`game-card card-${size} ${hidden ? 'card-hidden' : ''} ${action ? 'card-action' : ''} ${ingredient ? 'card-ingredient' : ''} ${selected ? 'is-selected' : ''} ${highlight ? 'is-highlighted' : ''} ${dimmed ? 'is-dimmed' : ''} ${onClick ? 'is-interactive' : ''} ${className}`}
     style={{ '--card-color': FRAME[kind], ...style } as CSSProperties}>
     <div className={`card-face ${kind === 'nasiLemak' && !hidden ? 'card-scoring-face' : ''}`}>
@@ -43,7 +43,7 @@ export function GameCard({ kind, size = 'md', selected, dimmed, highlight, packs
         {kind === 'nasiLemak' && packs !== undefined && <span className="pack-value">{size === 'xs' ? packs : t('common.packs', { n: packs })}</span>}
         {size !== 'xs' && (action || kind === 'rendang') && <div className="card-effect">{copy.short}</div>}
       </>}
-      {fly && <div className="card-fly-overlay"><CardArt kind="fly" className="h-full w-full" /></div>}
+      {fly && <div className="card-fly-overlay" aria-label={t('game.flyBlocked')}><CardArt kind="fly" className="h-full w-full" /></div>}
       {selected && <span className="card-check" aria-hidden="true">✓</span>}
     </div>
     {detail && kind !== 'back' && <div className="card-description"><strong>{kind === 'crow' ? t('category.special') : kind === 'nasiLemak' ? local : t(`category.${cardCategory(kind as CardKind)}`)}</strong><p>{copy.text}</p></div>}

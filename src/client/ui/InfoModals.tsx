@@ -99,13 +99,13 @@ export function SettingsModal({ open, onClose, avatar, onAvatarChange }: { open:
   return (
     <Modal open={open} onClose={onClose} title={t('settings.title')}>
       <div className="space-y-3">
-        <p className="font-semibold">Choose your avatar · 24 characters</p>
+        <p className="font-semibold">{t('common.avatarCount')}</p>
         <AvatarPicker value={onAvatarChange ? avatar : prefs.avatar} onChange={choose} disabled={busy} />
         <Toggle label={t('settings.sound')} value={prefs.sound} onChange={(v) => setPrefs({ sound: v })} />
         <Toggle label={t('settings.reducedMotion')} value={prefs.reducedMotion} onChange={(v) => setPrefs({ reducedMotion: v })} />
         <label className="flex items-center justify-between gap-3">
           <span className="font-semibold">{t('settings.language')}</span>
-          <select className="input max-w-40" defaultValue="en">
+          <select className="input max-w-40" value={prefs.language} onChange={(e) => setPrefs({ language: e.target.value as 'en' | 'zh' })} data-testid="language-select">
             {AVAILABLE_LOCALES.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.label}

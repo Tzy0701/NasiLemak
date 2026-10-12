@@ -3,6 +3,8 @@ import { GameCard } from '../../components/GameCard';
 import { Modal } from '../../components/Modal';
 import { t } from '../i18n';
 import type { TableInfo } from './helpers';
+import { CrownIcon } from '../../components/Icons';
+import type { CSSProperties } from 'react';
 
 export function Results({
   info,
@@ -25,6 +27,7 @@ export function Results({
       ? t('results.winner', { name: info.name(r.winnerIds[0]) })
       : t('results.winners');
   const sorted = [...r.standings].sort((a, b) => b.packs - a.packs || b.cards - a.cards);
+  const champions = sorted.filter(s => r.winnerIds.includes(s.playerId));
   return (
     <Modal
       open
@@ -47,16 +50,22 @@ export function Results({
         )
       }
     >
-      <div className="mb-4 text-center">
-        <div className="mx-auto mb-2 flex animate-float justify-center">
-          <GameCard kind="nasiLemak" size="md" packs={2} />
+      <div className={`victory-scene ${youWon ? 'you-won' : ''}`}>
+        <div className="victory-confetti" aria-hidden="true">{Array.from({ length: 28 }, (_, i) => <i key={i} style={{ '--i': i, '--x': `${(i * 37) % 100}%`, '--delay': `${(i % 7) * 85}ms` } as CSSProperties} />)}</div>
+        <p className="victory-eyebrow">{t('results.celebration')}</p>
+        <div className="victory-crown" aria-hidden="true"><CrownIcon /></div>
+        <h2 className="victory-headline" data-testid="winner-headline">{headline}</h2>
+        <div className="champion-gallery">
+          {champions.map(s => <div className="champion" key={s.playerId} data-testid="champion">
+            <div className="champion-portrait"><Avatar id={s.playerId} name={info.name(s.playerId)} size={88} /></div>
+            <strong>{info.name(s.playerId)}</strong>
+            <span className="champion-title">{t(champions.length > 1 ? 'results.sharedChampion' : 'results.champion')}</span>
+            <span className="champion-score">{t('results.valid', { n: s.packs })}</span>
+          </div>)}
         </div>
-        <h2 className="break-words font-display text-3xl font-bold text-sambal-600" data-testid="winner-headline">
-          {headline}
-        </h2>
-        <p className="text-sm text-kopi-700">{t(`results.reason.${r.reason}`)}</p>
+        <p className="victory-reason">{t(`results.reason.${r.reason}`)}</p>
       </div>
-      <h3 className="mb-2 font-semibold">{t('results.standings')}</h3>
+      <div className="mb-3"><h3 className="font-semibold">{t('results.standings')}</h3><p className="text-xs text-kopi-700">{t('results.revealed')}</p></div>
       <ol className="space-y-2">
         {sorted.map((s, i) => {
           const values = r.revealed[s.playerId] ?? [];
@@ -66,7 +75,7 @@ export function Results({
             <li
               key={s.playerId}
               data-testid="standing"
-              className={`standing-row grid items-center gap-2 rounded-2xl px-3 py-2 ${winner ? 'bg-kunyit-300/50' : 'bg-santan-100'}`}
+              className={`standing-row grid items-center gap-2 rounded-2xl px-3 py-2 ${winner ? 'standing-winner' : 'bg-santan-100'}`}
             >
               <span className="w-5 font-display text-lg font-bold">{i + 1}</span>
               <Avatar id={s.playerId} name={info.name(s.playerId)} size={30} />
@@ -77,8 +86,9 @@ export function Results({
                 ))}
               </div>
               <span className="font-display text-xl font-semibold" data-testid="standing-packs">
-                {s.packs}
+                {s.packs}<small className="standing-unit">{t('results.packs')}</small>
               </span>
+              <div className="standing-meta">{t('results.wrapped', { n: player?.nasiLemak.length ?? s.cards + s.fliedCards })} · {t('results.blocked', { n: s.fliedCards })}</div>
             </li>
           );
         })}

@@ -3,14 +3,19 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { installLayoutRoom, layoutState, finishedLayoutState } from './layout-fixture';
 import { layoutProblems } from './layout-metrics';
+import { en } from '../../src/client/i18n/en';
+import { zh } from '../../src/client/i18n/zh';
+// Each configuration owns its browser context and mocked room connection.
+test.describe.configure({ mode: 'parallel' });
 const sizes = [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 640, height: 720 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }, { width: 844, height: 390 }, { width: 390, height: 844, fallback: true }, { width: 320, height: 568, largeText: true }];
 const out = process.env.LAYOUT_OUTPUT ?? 'test-results/layout';
 const baseline = process.env.LAYOUT_BASELINE === '1';
-for (const size of sizes)
-  test(`layout ${size.width}x${size.height}${size.fallback ? ' fallback-font' : size.largeText ? ' large-text' : ''}: pages, cards and every game dialog`, async ({ browser }) => {
-    const ctx = await browser.newContext({ viewport: size, reducedMotion: 'reduce' });
+for (const language of ['en', 'zh'] as const) for (const size of sizes)
+  test(`layout ${language} ${size.width}x${size.height}${size.fallback ? ' fallback-font' : size.largeText ? ' large-text' : ''}: pages, cards and every game dialog`, async ({ browser }) => {
+    const copy = language === 'zh' ? zh : en;
+    const ctx = await browser.newContext({ viewport: size, reducedMotion: 'reduce', locale: language === 'zh' ? 'zh-CN' : 'en-US' });
     const page = await ctx.newPage();
-    const label = `${size.width}x${size.height}${size.fallback ? '-fallback' : size.largeText ? '-large-text' : ''}`;
+    const label = `${language}-${size.width}x${size.height}${size.fallback ? '-fallback' : size.largeText ? '-large-text' : ''}`;
     if (size.fallback) {
       await page.route('https://fonts.googleapis.com/**', route => route.abort());
       await page.route('https://fonts.gstatic.com/**', route => route.abort());
@@ -19,7 +24,7 @@ for (const size of sizes)
       await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.documentElement.style.fontSize = '20px'));
     const errors: string[] = [];
     page.on('pageerror', e => errors.push(e.message));
-    const room = await installLayoutRoom(page);
+    const room = await installLayoutRoom(page, layoutState(), { language });
     const checks: {
       screen: string;
       issues: string[];
@@ -32,13 +37,13 @@ for (const size of sizes)
       if (screenshot || (baseline && issues.length))
         await page.screenshot({ path: join(out, `${label}-${screen}.png`) });
     };
-    const close = async () => { await page.getByRole('button', { name: 'Close', exact: true }).last().click(); };
+    const close = async () => { await page.getByRole('button', { name: copy.common.close, exact: true }).last().click(); };
     await page.goto('/');
     await scan('home');
-    await page.getByRole('button', { name: 'How to Play', exact: true }).click();
+    await page.getByRole('button', { name: copy.common.howToPlay, exact: true }).click();
     await scan('home-help');
     await close();
-    await page.getByRole('button', { name: 'Card Reference', exact: true }).click();
+    await page.getByRole('button', { name: copy.common.cards, exact: true }).click();
     await scan('card-reference', true);
     for (const kind of ['nasi', 'telur', 'kacang', 'sambal', 'timun', 'rendang', 'supplier', 'thief', 'wholesaler', 'officer', 'makcik', 'fly', 'swatter', 'fan', 'sioyen', 'crow', 'nasiLemak']) {
       await page.locator(`[data-testid=card-reference] .game-card[data-kind=${kind}]`).click();
@@ -57,7 +62,7 @@ for (const size of sizes)
     await close();
     await page.goto('/r/AUD234');
     await expect(page.getByTestId('hand')).toBeVisible();
-    for (const count of [2, 4, 7]) {
+    for (const count of [2, 3, 4, 5, 6, 7]) {
       room.publish(layoutState(count));
       await page.locator('.table-board').evaluate(el => el.scrollTop = 0);
       await scan(`table-${count}`, true);
@@ -92,11 +97,11 @@ for (const size of sizes)
     await close();
     await page.getByTestId('menu-button').click();
     await scan('game-menu');
-    await page.getByRole('button', { name: 'How to Play', exact: true }).click();
+    await page.getByRole('button', { name: copy.common.howToPlay, exact: true }).click();
     await scan('game-help');
     await close();
     await page.getByTestId('menu-button').click();
-    await page.getByRole('button', { name: 'End game now', exact: true }).click();
+    await page.getByRole('button', { name: copy.game.abort, exact: true }).click();
     await scan('abort-confirm');
     await close();
     await page.getByTestId('menu-button').click();

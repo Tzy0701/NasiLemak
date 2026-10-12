@@ -7,6 +7,7 @@ import { ApiError, createRoom, joinRoom } from '../net/api';
 import { getPrefs, latestSession, saveSession, setPrefs, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { CardReferenceModal, HowToPlayModal, SettingsModal } from '../ui/InfoModals';
+import { LanguageButton } from '../ui/LanguageButton';
 
 function errorText(e: unknown): string {
   const code = e instanceof ApiError ? e.code : 'network';
@@ -68,17 +69,18 @@ export function HomePage() {
     <div className="home-page min-h-full">
       <header className="home-hero relative overflow-hidden pb-10 pt-6 text-center text-white">
         <div className="absolute right-3 top-3 flex gap-2">
-          <button className="btn-ghost btn-sm !bg-white/15 !text-white !border-white/30" onClick={() => setModal('settings')}>
+          <LanguageButton />
+          <button className="btn-ghost btn-sm" onClick={() => setModal('settings')}>
             {t('common.settings')}
           </button>
         </div>
         <Cover />
         <button className="avatar-profile" onClick={() => setModal('settings')} data-testid="choose-avatar">
-          <Avatar id="profile" name="Your avatar" avatar={prefs.avatar} size={48} />
-          <span>Choose your avatar</span>
+          <Avatar id="profile" name={t('common.chooseAvatar')} avatar={prefs.avatar} size={48} />
+          <span>{t('common.chooseAvatar')}</span>
         </button>
         <h1 className="mt-2 font-display text-4xl font-bold tracking-tight drop-shadow sm:text-5xl">
-          Nasi Lemak <span className="text-kunyit-300">Online</span>
+          {t('app.title')}
         </h1>
         <p className="mx-auto mt-2 max-w-xl px-4 text-leaf-50/90">{t('app.tagline')}</p>
         <div className="mt-4 flex justify-center gap-2">

@@ -17,6 +17,17 @@ import { ChaseCrowFlow, CardDetail, type Flow, OfficerTake, PlayCardFlow, Recipe
 import { Results } from './Results';
 import { CenterPiles, OpponentSeat } from './TablePieces';
 import { canChaseCrow, canMake, canTrade, formatLog, kindName, sortHand, tableInfo, useMediaQuery } from './helpers';
+import { LanguageButton } from '../ui/LanguageButton';
+import { TableInspector, type Inspection } from './TableInspector';
+import { TableEffects, useTableEvents } from './TableEffects';
+
+// Clockwise seats around the centre, starting on the local player's left.
+const SEATS: Record<number, string[]> = {
+  1: ['1 / 2'], 2: ['1 / 1', '1 / 3'], 3: ['2 / 1', '1 / 2', '2 / 3'],
+  4: ['2 / 1', '1 / 1', '1 / 3', '2 / 3'],
+  5: ['3 / 1', '2 / 1', '1 / 2', '2 / 3', '3 / 3'],
+  6: ['3 / 1', '2 / 1', '1 / 1', '1 / 3', '2 / 3', '3 / 3'],
+};
 
 function useCountdown(deadline: number | null): number | null {
   const [now, setNow] = useState(Date.now());
@@ -39,6 +50,8 @@ export function GameTable() {
   const roomy = useMediaQuery('(min-width: 640px)');
   const [flow, setFlow] = useState<Flow | null>(null);
   const [showResults, setShowResults] = useState(true);
+  const [inspection, setInspection] = useState<Inspection | null>(null);
+  const { event, reduced } = useTableEvents(v);
   const countdown = useCountdown(v.turn.deadline);
   const members = useMemo(() => new Map(room.members.map((m) => [m.id, m])), [room.members]);
 
@@ -153,10 +166,10 @@ export function GameTable() {
       <Toasts />
       {/* Top bar */}
       <header className="game-topbar safe-top z-30 flex items-center gap-2 px-3 pb-1.5 text-white shadow">
-        <button className="rounded-xl p-2 hover:bg-white/10" onClick={() => setFlow({ type: 'menu' })} aria-label={t('game.menu')} data-testid="menu-button">
+        <button className="table-icon-button rounded-xl p-2" onClick={() => setFlow({ type: 'menu' })} aria-label={t('game.menu')} data-testid="menu-button">
           <MenuIcon />
         </button>
-        <span className="game-brand">Nasi Lemak<br />Online</span>
+        <span className="game-brand">{t('app.title')}</span>
         <div className="min-w-0 flex-1 text-center">
           <div
             className={`turn-banner mx-auto inline-flex max-w-full items-center gap-2 truncate rounded-full px-3 py-1 font-display text-sm font-semibold sm:text-base ${
@@ -169,8 +182,9 @@ export function GameTable() {
           </div>
         </div>
         <span className="hidden font-display text-sm tracking-widest text-leaf-100 sm:inline">{room.code}</span>
+        <LanguageButton />
         {!wide && (
-          <button className="rounded-xl p-2 hover:bg-white/10" onClick={() => setFlow({ type: 'log' })} aria-label={t('game.log')} data-testid="log-button">
+          <button className="table-icon-button rounded-xl p-2" onClick={() => setFlow({ type: 'log' })} aria-label={t('game.log')} data-testid="log-button">
             <LogIcon />
           </button>
         )}
@@ -186,14 +200,16 @@ export function GameTable() {
             data-testid="opponents"
             data-count={opponents.length}
           >
-            {opponents.map((p) => (
-              <OpponentSeat key={p.id} p={p} member={members.get(p.id)} active={p.id === v.turn.playerId && v.status === 'playing'} compact={!roomy} />
+            {opponents.map((p, i) => (
+              <OpponentSeat key={p.id} p={p} member={members.get(p.id)} active={p.id === v.turn.playerId && v.status === 'playing'} compact={!roomy}
+                style={{ gridArea: SEATS[opponents.length]?.[i] }} onClick={() => setInspection({ type: 'player', playerId: p.id })} />
             ))}
           </section>
 
           {/* Centre */}
           <section className="table-centre flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-            <CenterPiles v={v} name={(id) => info.name(id)} />
+            <CenterPiles v={v} name={(id) => info.name(id)} onInspect={pile => setInspection({ type: 'pile', pile })} />
+            <p className="table-inspect-hint">{t('game.inspectHint')}</p>
             {currentMember && !currentMember.connected && !currentMember.isBot && v.status === 'playing' && (
               <div className="flex items-center gap-2 rounded-2xl bg-kopi-900/50 px-3 py-1.5 text-xs font-semibold text-white" data-testid="absent-banner">
                 {t('game.absent', { name: current?.name ?? '?', n: room.afkSkipSec })}
@@ -224,27 +240,29 @@ export function GameTable() {
           </section>
 
           </div>
+          <TableEffects event={event} v={v} reduced={reduced} />
 
           {/* My area */}
           <section className="player-area safe-bottom shrink-0 px-2 pt-2" data-testid="my-area">
-            <div className="player-summary flex items-center gap-2 px-1">
-              {me && <Avatar id={me.id} name={me.name} size={42} ring={myTurn} avatar={members.get(me.id)?.avatar} />}
+            <div className="player-summary flex items-center gap-2 px-1" data-player-id={me?.id}>
+              {me && <button className="self-avatar-button" onClick={() => setInspection({ type: 'player', playerId: me.id })} aria-label={t('game.tableDetails', { name: me.name })}><Avatar id={me.id} name={me.name} size={42} ring={myTurn} avatar={members.get(me.id)?.avatar} /></button>}
               <div className="player-name min-w-0">
                 <div className="truncate text-sm font-bold leading-tight">{me?.name}</div>
-                <div className="text-xs text-kopi-700" data-testid="my-packs">
+                <div className="self-pack-count text-xs" data-testid="my-packs">
                   {t('common.packs', { n: myPacks })} / {v.config.length === 'short' ? v.config.targetPacks : '∞'}
                 </div>
               </div>
               <div className="no-scrollbar flex flex-1 items-center gap-1 overflow-x-auto" data-testid="my-nasi-lemak">
                 {me?.nasiLemak.map((nl) => (
-                  <GameCard key={nl.id} kind="nasiLemak" size="xs" packs={nl.packs} fly={nl.hasFly} className="animate-pop" />
+                  <GameCard key={nl.id} kind="nasiLemak" size="xs" packs={nl.packs} fly={nl.hasFly} className="animate-pop" onClick={() => setInspection({ type: 'player', playerId: me.id, nlId: nl.id })}
+                    label={`${t('game.parcelValue', { n: nl.packs })}${nl.hasFly ? ` · ${t('game.flyBlocked')}` : ''}`} testId="my-parcel" />
                 ))}
               </div>
               {me?.crow && (
-                <div className="flex items-center gap-1 rounded-full bg-kopi-900 py-0.5 pl-0.5 pr-2 text-xs font-bold text-white" title={t('game.crowBlocks')} data-testid="my-crow">
+                <button className="self-crow flex items-center gap-1 rounded-full bg-kopi-900 py-0.5 pl-0.5 pr-2 text-xs font-bold text-white" onClick={() => setInspection({ type: 'player', playerId: me.id })} title={t('game.crowBlocks')} data-testid="my-crow">
                   <CardArt kind="crow" className="h-7 w-7" />
                   {me.crow.stashCount}
-                </div>
+                </button>
               )}
               <span className="hand-caption">{t('design.hand', { n: hand.length })}</span>
             </div>
@@ -292,7 +310,7 @@ export function GameTable() {
                     label={`${kindName(c.kind)}${count > 1 ? ` ×${count}` : ''}`}
                   />
                   <div className="hand-card-tags">
-                    {isNew && <span className="rounded-full bg-sambal-500 px-1.5 text-[0.6rem] font-bold text-white shadow">NEW</span>}
+                    {isNew && <span className="rounded-full bg-sambal-500 px-1.5 text-[0.6rem] font-bold text-white shadow">{t('common.new')}</span>}
                     {count > 1 && <span className="ml-auto rounded-full bg-kopi-900 px-1.5 text-xs font-bold text-white shadow" data-testid="stack-count">×{count}</span>}
                   </div>
                 </div>
@@ -323,6 +341,7 @@ export function GameTable() {
       )}
 
       {/* Local flows */}
+      {inspection && <TableInspector inspection={inspection} info={info} onClose={() => setInspection(null)} />}
       {flow?.type === 'detail' && (
         <CardDetail
           card={flow.card}

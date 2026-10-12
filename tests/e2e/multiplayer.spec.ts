@@ -58,7 +58,10 @@ test('3 players on separate browsers play a complete Classic Base game through t
       await expect(host.page.getByTestId('trade-banner')).toBeHidden();
     }
     // Once: the phone player refreshes mid-game and keeps their seat + hand.
-    if (!refreshed && step > 6 && current !== guest1) {
+    // The active player's snapshot includes the automatic draw. Reading an
+    // inactive, lagging page just after a turn change can compare pre-draw and
+    // post-draw hands even though refresh restored the server state correctly.
+    if (!refreshed && step > 6 && current === guest1) {
       refreshed = true;
       const before = await handSignature(guest1.page);
       await guest1.page.reload({ waitUntil: 'domcontentloaded' });
