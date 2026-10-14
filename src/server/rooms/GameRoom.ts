@@ -42,7 +42,7 @@ export const TIMINGS = {
   afkSkip: 60_000,
   hostTransfer: 45_000,
   botDelay: 1_100,
-  idleCleanupEmpty: 6 * 60 * 60_000,
+  idleCleanupEmpty: 30 * 60_000,
   idleCleanupAny: 48 * 60 * 60_000,
 };
 
@@ -54,7 +54,7 @@ const FAST_TIMINGS: typeof TIMINGS = {
   afkSkip: 2_500,
   hostTransfer: 2_500,
   botDelay: 120,
-  idleCleanupEmpty: 6 * 60 * 60_000,
+  idleCleanupEmpty: 30_000,
   idleCleanupAny: 48 * 60 * 60_000,
 };
 
@@ -82,7 +82,10 @@ interface RoomRecord {
   status: 'lobby' | 'playing' | 'finished';
   gamesPlayed: number;
   version: number;
+  /** Last successful human intent or authentication; background work never refreshes it. */
   lastActivity: number;
+  /** All humans disconnected: freeze game timers until someone returns. Optional for old rooms. */
+  pausedAt?: number | null;
   timers: {
     tradeKey: string | null;
     tradeAt: number;
@@ -119,6 +122,18 @@ export class GameRoom extends DurableObject<Env> {
     ctx.blockConcurrencyWhile(async () => {
       this.room = (await ctx.storage.get<RoomRecord>('room')) ?? null;
       this.game = (await ctx.storage.get<GameState>('game')) ?? null;
+      if (this.room) {
+        // A runtime restart may lose sockets without delivering close events.
+        // Use the last known activity/disconnection as a conservative pause
+        // boundary, including rooms persisted before pausedAt existed.
+        const disconnectedAt = Math.max(this.room.lastActivity, ...this.room.members.filter((m) => !m.isBot).map((m) => m.disconnectedAt ?? 0));
+        for (const member of this.room.members) {
+          if (!member.isBot && member.disconnectedAt === null && this.socketsFor(member.id).length === 0) {
+            member.disconnectedAt = this.room.pausedAt ?? disconnectedAt;
+          }
+        }
+        if (!this.hasConnectedHumans() && this.room.pausedAt == null) this.room.pausedAt = disconnectedAt;
+      }
     });
   }
 
@@ -146,6 +161,7 @@ export class GameRoom extends DurableObject<Env> {
       gamesPlayed: 0,
       version: 1,
       lastActivity: now,
+      pausedAt: now,
       timers: { tradeKey: null, tradeAt: 0, turnKey: 0, turnAt: 0 },
     };
     await this.persist();
@@ -154,6 +170,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async join(rawName: unknown, avatar?: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
+    if (await this.closeIfExpired()) return { ok: false, error: 'room-not-found' };
     const room = this.room;
     if (!room) return { ok: false, error: 'room-not-found' };
     const name = sanitiseName(rawName);
@@ -170,6 +187,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async info(): Promise<RoomInfoResponse | null> {
+    if (await this.closeIfExpired()) return null;
     const room = this.room;
     if (!room) return null;
     return {
@@ -189,7 +207,7 @@ export class GameRoom extends DurableObject<Env> {
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return new Response('Expected WebSocket', { status: 426 });
     }
-    if (!this.room) return new Response('Room not found', { status: 404 });
+    if (!this.room || await this.closeIfExpired()) return new Response('Room not found', { status: 404 });
     if (this.ctx.getWebSockets().length > 64) return new Response('Too many connections', { status: 429 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
@@ -200,7 +218,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
-    if (!this.room) {
+    if (!this.room || await this.closeIfExpired()) {
       this.send(ws, { t: 'kicked', reason: 'room-closed' });
       ws.close(4004, 'room closed');
       return;
@@ -317,7 +335,7 @@ export class GameRoom extends DurableObject<Env> {
     if (!this.room || !att.pid) return;
     const member = this.room.members.find((m) => m.id === att.pid);
     if (!member || member.isBot) return;
-    if (this.socketsFor(member.id, ws).length === 0) {
+    if (member.disconnectedAt === null && this.socketsFor(member.id, ws).length === 0) {
       member.disconnectedAt = Date.now();
       await this.commit();
     }
@@ -335,7 +353,7 @@ export class GameRoom extends DurableObject<Env> {
     // Close sockets that never authenticated.
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (att && !att.pid && now - att.at > this.tm.authTimeout) {
+      if (ws.readyState === WebSocket.OPEN && att && !att.pid && now - att.at >= this.tm.authTimeout) {
         try {
           ws.close(4001, 'auth timeout');
         } catch {
@@ -344,19 +362,20 @@ export class GameRoom extends DurableObject<Env> {
       }
     }
 
-    // Idle cleanup.
-    const anyConnected = room.members.some((m) => !m.isBot && this.socketsFor(m.id).length > 0);
-    const idleLimit = anyConnected ? this.tm.idleCleanupAny : this.tm.idleCleanupEmpty;
-    if (now - room.lastActivity > idleLimit) {
-      await this.destroy();
+    let changed = this.updatePresence(now);
+    if (await this.closeIfExpired(now)) return;
+
+    // Empty rooms only wake for authentication cleanup or final expiry.
+    // They must not advance turns/bots or extend their own lifetime.
+    if (!this.hasConnectedHumans()) {
+      if (changed) await this.commit();
+      else await this.scheduleAlarm();
       return;
     }
 
-    let changed = false;
     changed = this.maybeTransferHost(now) || changed;
     changed = this.runGameTimers(now) || changed;
     if (changed) {
-      this.touch();
       await this.commit();
     } else {
       await this.scheduleAlarm();
@@ -366,7 +385,7 @@ export class GameRoom extends DurableObject<Env> {
   private runGameTimers(now: number): boolean {
     const room = this.room!;
     const game = this.game;
-    if (room.status !== 'playing' || !game || game.status !== 'playing') return false;
+    if (!this.hasConnectedHumans() || room.status !== 'playing' || !game || game.status !== 'playing') return false;
     this.syncTimers(now);
     const t = room.timers;
     const trade = game.turn.trade;
@@ -429,7 +448,7 @@ export class GameRoom extends DurableObject<Env> {
     const room = this.room!;
     const host = room.members.find((m) => m.id === room.hostId);
     if (host && !host.isBot && host.disconnectedAt && now - host.disconnectedAt >= this.tm.hostTransfer) {
-      const next = room.members.find((m) => !m.isBot && m.id !== host.id && this.socketsFor(m.id).length > 0);
+      const next = room.members.find((m) => !m.isBot && m.id !== host.id && m.disconnectedAt === null && this.socketsFor(m.id).length > 0);
       if (next) {
         room.hostId = next.id;
         return true;
@@ -461,19 +480,18 @@ export class GameRoom extends DurableObject<Env> {
     const room = this.room;
     if (!room) return;
     const now = Date.now();
-    const times: number[] = [room.lastActivity + this.tm.idleCleanupAny];
-    const anyConnected = room.members.some((m) => !m.isBot && this.socketsFor(m.id).length > 0);
-    if (!anyConnected) times.push(room.lastActivity + this.tm.idleCleanupEmpty);
+    const times: number[] = [this.cleanupAt()];
+    const anyConnected = this.hasConnectedHumans();
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (att && !att.pid) times.push(att.at + this.tm.authTimeout);
+      if (ws.readyState === WebSocket.OPEN && att && !att.pid) times.push(att.at + this.tm.authTimeout);
     }
     const host = room.members.find((m) => m.id === room.hostId);
-    if (host?.disconnectedAt && room.members.some((m) => !m.isBot && m.id !== host.id)) {
+    if (host?.disconnectedAt && room.members.some((m) => !m.isBot && m.id !== host.id && m.disconnectedAt === null && this.socketsFor(m.id).length > 0)) {
       times.push(host.disconnectedAt + this.tm.hostTransfer);
     }
     const game = this.game;
-    if (room.status === 'playing' && game && game.status === 'playing') {
+    if (anyConnected && room.status === 'playing' && game && game.status === 'playing') {
       const tr = game.turn.trade;
       if (tr) {
         times.push(room.timers.tradeAt + this.tm.tradeTimeout);
@@ -485,13 +503,50 @@ export class GameRoom extends DurableObject<Env> {
       if (game.turn.deadline) times.push(game.turn.deadline);
       const current = room.members.find((m) => m.id === game.turn.playerId);
       if (current?.disconnectedAt) times.push(Math.max(current.disconnectedAt, room.timers.turnAt) + this.tm.afkSkip);
-      if (!current) times.push(now + 500);
+      if (!current && !game.players.find((p) => p.id === game.turn.playerId)?.gone) times.push(now + 500);
       const actorId = tr ? tr.awaitingId : game.turn.playerId;
       if (room.members.find((m) => m.id === actorId)?.isBot) times.push(now + this.tm.botDelay);
     }
     const next = Math.max(now + 50, Math.min(...times));
     const existing = await this.ctx.storage.getAlarm();
-    if (existing === null || existing > next || existing < now) await this.ctx.storage.setAlarm(next);
+    // Replace obsolete short timers as well as bringing new deadlines forward.
+    if (existing !== next) await this.ctx.storage.setAlarm(next);
+  }
+
+  private hasConnectedHumans(): boolean {
+    return this.room?.members.some((m) => !m.isBot && m.disconnectedAt === null && this.socketsFor(m.id).length > 0) ?? false;
+  }
+
+  private cleanupAt(): number {
+    const room = this.room!;
+    const inactive = room.lastActivity + this.tm.idleCleanupAny;
+    return this.hasConnectedHumans() ? inactive : Math.min(inactive, (room.pausedAt ?? room.lastActivity) + this.tm.idleCleanupEmpty);
+  }
+
+  private async closeIfExpired(now = Date.now()): Promise<boolean> {
+    if (!this.room || now < this.cleanupAt()) return false;
+    await this.destroy();
+    return true;
+  }
+
+  /** Freeze elapsed game/AFK time while the last human is away. */
+  private updatePresence(now: number): boolean {
+    const room = this.room!;
+    if (!this.hasConnectedHumans()) {
+      if (room.pausedAt != null) return false;
+      room.pausedAt = now;
+      return true;
+    }
+    if (room.pausedAt == null) return false;
+    const pausedFor = Math.max(0, now - room.pausedAt);
+    if (room.timers.tradeAt > 0) room.timers.tradeAt += pausedFor;
+    if (room.timers.turnAt > 0) room.timers.turnAt += pausedFor;
+    if (this.game?.turn.deadline) this.game.turn.deadline += pausedFor;
+    for (const member of room.members) {
+      if (!member.isBot && member.disconnectedAt !== null) member.disconnectedAt += pausedFor;
+    }
+    room.pausedAt = null;
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -787,6 +842,7 @@ export class GameRoom extends DurableObject<Env> {
   /** Persist, push fresh snapshots to everyone and re-arm timers. */
   private async commit(): Promise<void> {
     if (!this.room) return;
+    this.updatePresence(Date.now());
     this.room.version += 1;
     await this.persist();
     this.broadcast();

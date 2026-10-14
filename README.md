@@ -120,6 +120,19 @@ Updating later is just `npm run deploy` again; Durable Object state survives
 deployments (rooms in progress are restored from storage, clients reconnect
 automatically).
 
+### Disconnects and room expiry
+
+When the last human disconnects, the room pauses all game, bot, trade and AFK
+timers for a 30-minute reconnect window. Reconnecting within that window keeps
+the same seat, cards and remaining timer durations. If another human is still
+online, normal AFK handling and host transfer continue. Bots and background
+timers never refresh the room's last human activity.
+
+Empty rooms wake only to close unauthenticated sockets or expire; they do not
+keep retrying a host transfer without an online successor. Rooms also expire
+after 48 hours without a successful human action or authentication. Explicitly
+leaving as the last human still closes the room immediately.
+
 ## Configuration reference
 
 | File | Purpose |

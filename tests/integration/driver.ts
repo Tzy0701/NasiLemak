@@ -34,6 +34,12 @@ export async function playGame(
     const g = ref.game;
     if (!g) throw new Error('no game');
     if (g.status === 'finished') {
+      const finalVersion = ref.room!.version;
+      // State broadcasts arrive on independent sockets. Seeing the winner on
+      // one socket does not imply that every other player has received it yet.
+      await Promise.all(players.filter((p) => p.ws?.readyState === WebSocket.OPEN).map((p) =>
+        p.waitFor(() => (p.room?.version ?? 0) >= finalVersion && p.game?.status === 'finished', 10_000, 'final state broadcast'),
+      ));
       stats.winners = g.result!.winnerIds;
       return stats;
     }

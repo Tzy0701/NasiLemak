@@ -15,6 +15,126 @@ async function startedRoom(n: number, mode: 'classic-base' | 'classic-rendang' =
 }
 
 describe('disconnects, refreshes and reconnection', () => {
+  it('freezes the game when all humans disconnect, then resumes the same turn and hands', async () => {
+    const players = await startedRoom(3);
+    const current = players.find((p) => p.playerId === p.game!.turn.playerId)!;
+    const before = players.map((p) => ({ id: p.playerId, hand: p.game!.hand.map((c) => c.id).sort(), turn: p.game!.turn.number }));
+    const reconnected: TestPlayer[] = [];
+    try {
+      players.forEach((p) => p.drop());
+      // Longer than both FAST_TIMERS host-transfer and AFK deadlines.
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      for (const p of [current, ...players.filter((p) => p !== current)]) {
+        const again = new TestPlayer(base, p.name, p.code, p.playerId, p.token);
+        reconnected.push(again);
+        await again.connect();
+        const expected = before.find((x) => x.id === p.playerId)!;
+        expect(again.game!.turn.number).toBe(expected.turn);
+        expect(again.game!.hand.map((c) => c.id).sort()).toEqual(expected.hand);
+        expect(again.game!.log.some((e) => e.key === 'turn-skipped-afk')).toBe(false);
+      }
+      auditHiddenInfo(reconnected);
+      expectOk(await reconnected[0]!.act({ type: 'endTurn' }));
+      await reconnected[1]!.waitFor(() => reconnected[1]!.game!.turn.number > before[0]!.turn, 5_000, 'play resumes');
+    } finally {
+      players.forEach((p) => p.close());
+      reconnected.forEach((p) => p.close());
+    }
+  });
+
+  it('pauses a bot game when its only human leaves and continues when they reconnect', async () => {
+    const host = await TestPlayer.create(base, 'Pause bot game');
+    let again: TestPlayer | null = null;
+    try {
+      expectOk(await host.lobby({ op: 'addBot', bot: 'collector' }));
+      expectOk(await host.lobby({ op: 'start' }));
+      await host.waitFor(() => host.game?.status === 'playing' && host.game.turn.playerId === host.playerId, 15_000, 'human turn');
+      const before = { turn: host.game!.turn.number, hand: host.game!.hand.map((c) => c.id).sort(), draw: host.game!.drawCount };
+      host.drop();
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      again = new TestPlayer(base, host.name, host.code, host.playerId, host.token);
+      await again.connect();
+      expect(again.game!.turn.number).toBe(before.turn);
+      expect(again.game!.hand.map((c) => c.id).sort()).toEqual(before.hand);
+      expect(again.game!.drawCount).toBe(before.draw);
+      expectOk(await again.act({ type: 'endTurn' }));
+      const resumed = again;
+      await resumed.waitFor(() => resumed.game!.turn.number >= before.turn + 2 && resumed.game!.turn.playerId === resumed.playerId, 15_000, 'bot resumes');
+    } finally {
+      host.close();
+      again?.close();
+    }
+  });
+
+  it('freezes a pending trade while everybody is away', async () => {
+    const players = await startedRoom(2);
+    const current = players.find((p) => p.playerId === p.game!.turn.playerId)!;
+    const other = players.find((p) => p !== current)!;
+    const reconnected: TestPlayer[] = [];
+    try {
+      const offer = current.game!.hand.find((c) => isTradeable(c.kind));
+      expect(offer).toBeDefined();
+      expectOk(await current.act({ type: 'proposeTrade', targetId: other.playerId, offerCardIds: [offer!.id], wantKinds: { nasi: 1 } }));
+      await other.waitFor(() => other.game!.turn.trade?.awaitingId === other.playerId, 5_000, 'trade seen');
+      const tradeId = other.game!.turn.trade!.id;
+      players.forEach((p) => p.drop());
+      // Longer than the trade timeout (5s) and disconnect grace (1.5s).
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      for (const p of [other, current]) {
+        const again = new TestPlayer(base, p.name, p.code, p.playerId, p.token);
+        reconnected.push(again);
+        await again.connect();
+        expect(again.game!.turn.trade?.id).toBe(tradeId);
+      }
+      expectOk(await reconnected[0]!.act({ type: 'respondTrade', tradeId, response: 'reject' }));
+      await reconnected[1]!.waitFor(() => reconnected[1]!.game!.turn.trade === null, 5_000, 'trade resumes');
+    } finally {
+      players.forEach((p) => p.close());
+      reconnected.forEach((p) => p.close());
+    }
+  });
+
+  it('expires a fully disconnected lobby after the reconnect window', async () => {
+    const players = await makeRoom(base, 2);
+    const code = players[0]!.code;
+    players.forEach((p) => p.drop());
+    // FAST_TIMERS uses a 30s reconnect window; production uses 30 minutes.
+    await new Promise((resolve) => setTimeout(resolve, 31_000));
+    expect((await fetch(`${base}/api/rooms/${code}`)).status).toBe(404);
+    const host = players[0]!;
+    const again = new TestPlayer(base, host.name, code, host.playerId, host.token);
+    await expect(again.connect()).rejects.toThrow('ws error');
+    again.close();
+  });
+
+  it('preserves the remaining custom turn timer across an all-human disconnect', async () => {
+    const players = await makeRoom(base, 2);
+    const reconnected: TestPlayer[] = [];
+    try {
+      expectOk(await players[0]!.lobby({ op: 'setMode', mode: 'custom' }));
+      expectOk(await players[0]!.lobby({ op: 'setCustomConfig', config: { turnTimerSec: 20 } }));
+      await readyAll(players);
+      expectOk(await players[0]!.lobby({ op: 'start' }));
+      for (const p of players) await p.waitFor(() => p.game?.status === 'playing', 5_000, 'start timer game');
+      const current = players.find((p) => p.playerId === p.game!.turn.playerId)!;
+      const deadline = current.game!.turn.deadline!;
+      const turn = current.game!.turn.number;
+      players.forEach((p) => p.drop());
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      for (const p of [current, ...players.filter((p) => p !== current)]) {
+        const again = new TestPlayer(base, p.name, p.code, p.playerId, p.token);
+        reconnected.push(again);
+        await again.connect();
+        expect(again.game!.turn.number).toBe(turn);
+        expect(again.game!.turn.deadline! - deadline).toBeGreaterThan(5_000);
+        expect(again.game!.turn.deadline! - Date.now()).toBeGreaterThan(15_000);
+      }
+    } finally {
+      players.forEach((p) => p.close());
+      reconnected.forEach((p) => p.close());
+    }
+  });
+
   it('a player who reconnects (page refresh) gets the same seat, same hand, same game', async () => {
     const players = await startedRoom(3);
     // Play a few actions first.
