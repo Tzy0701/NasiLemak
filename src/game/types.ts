@@ -53,7 +53,17 @@ export interface PendingOfficer {
   take: number;
 }
 
-export type PendingChoice = PendingOfficer;
+export interface PendingThief {
+  type: 'thief';
+  actorId: string;
+  targetId: string;
+  take: 1;
+  remaining: string[];
+  completed: string[];
+  /** Server-only mapping. Opaque handles never encode a physical card id. */
+  choices: { id: string; cardId: string }[];
+}
+export type PendingChoice = PendingOfficer | PendingThief;
 
 export interface TurnState {
   playerId: string;
@@ -131,6 +141,7 @@ export type GameAction =
   | { type: 'make'; cardIds: string[] }
   | PlayAction
   | { type: 'officerTake'; cardIds: string[] }
+  | { type: 'thiefTake'; targetId: string; choiceId: string }
   | { type: 'passCrow'; crowId: string; cardId: string; targetId: string }
   | { type: 'proposeTrade'; targetId: string; offerCardIds: string[]; wantKinds: KindCount }
   | { type: 'respondTrade'; tradeId: string; response: 'accept' | 'reject' }

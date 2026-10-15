@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { projectGame } from '../../src/game/view';
-import { RECIPE, giveNasiLemak, hand, ok, setHand, setup } from './helpers';
+import { RECIPE, chooseAllThiefCards, giveNasiLemak, hand, ok, setHand, setup } from './helpers';
 
 describe('hidden information in player views', () => {
   it('only your own hand is sent; others are just counts', () => {
@@ -50,6 +50,7 @@ describe('hidden information in player views', () => {
     expect(drawP1).toHaveLength(0);
     setHand(s, 'p0', ['thief']);
     ok(s, 'p0', { type: 'play', cardId: hand(s, 'p0')[0]!.id, card: 'thief' });
+    chooseAllThiefCards(s);
     const p2log = projectGame(s, 'p2').log.filter((e) => e.key === 'thief-private');
     expect(p2log).toHaveLength(1);
     expect(p2log[0]!.target).toBe('p2');

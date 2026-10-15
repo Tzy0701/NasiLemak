@@ -111,5 +111,27 @@
       "transparent": true,
       "prompt": "Edit this Nasi Lemak game avatar atlas. Keep EXACT same 4 columns x 2 rows, equally sized square cells, 2:1 canvas, eight individual circles with gold rims and green banana leaf / white frangipani backgrounds; transparent outside circles. Keep each character's ethnicity, age, gender, clothing, hair, glasses and identity and match warm painted illustration style. CHANGE head orientation and expressions markedly so portraits are individually distinctive, NOT all looking same direction. Row1 cell1 turn LEFT threequarter smiling softly; cell2 FRONT straight into camera calm confident closed-mouth smile; cell3 turn RIGHT nearprofile cheerful looking sideways; cell4 head tilted LEFT laughing with eyesclosed. Row2 cell1 turn LEFT nearprofile thoughtful smallsmile; cell2 FRONT winking mischievously one eyebrowraised; cell3 glance RIGHT over shoulder headtilted joyful; cell4 FRONT friendly gentle smile (if chefrobot keeprobotandthumbsup). Deliberately visible left/right/front variety with subtle shoulders and poses. No words, no labels, no numbers, exactly8 circles in same consistent uniformgrid. Do not change the background or ethnic identities. "
     }
-  ]
+  ],
+  "stickers": {
+    "file": "stickers.png",
+    "columns": 3,
+    "rows": 4,
+    "count": 12,
+    "transparent": true,
+    "generatedOn": "2026-10-15",
+    "order": [
+      "laugh",
+      "cry",
+      "smug",
+      "shock",
+      "thanks",
+      "hurry",
+      "cat",
+      "crow",
+      "hungry",
+      "cheer",
+      "sneak",
+      "love"
+    ]
+  }
 }

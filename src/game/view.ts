@@ -60,12 +60,15 @@ export interface GameView {
     /** Ids of the cards you drew this turn (only for the active player). */
     drawnIds: string[];
     pending: null | {
-      type: 'officer';
+      type: 'officer' | 'thief';
       actorId: string;
       targetId: string;
       take: number;
       /** Target's hand, revealed ONLY to the Officer's player. */
       targetHand?: Card[];
+      choices?: string[];
+      remaining?: string[];
+      completed?: string[];
     };
     trade: TradeView | null;
   };
@@ -103,7 +106,11 @@ export function projectGame(state: GameState, viewerId: string | null, logLimit 
   if (turn.pending) {
     const pd = turn.pending;
     pending = { type: pd.type, actorId: pd.actorId, targetId: pd.targetId, take: pd.take };
-    if (viewerId === pd.actorId) {
+    if (pd.type === 'thief') {
+      pending.remaining = [...pd.remaining];
+      pending.completed = [...pd.completed];
+      if (viewerId === pd.actorId) pending.choices = pd.choices.map(choice => choice.id);
+    } else if (viewerId === pd.actorId) {
       const target = state.players.find((p) => p.id === pd.targetId);
       pending.targetHand = target ? target.hand.map((c) => ({ ...c })) : [];
     }

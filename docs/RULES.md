@@ -89,8 +89,12 @@ the player with the most Nasi Lemak cards wins.
 2. **Pack values of the 3 expansion Nasi Lemak cards** are not stated in any
    text we could read. We assume **2 × 1 pack + 1 × 2 packs** (keeps the base
    ratio). Change `OFFICIAL_RENDANG.nlOnePack / nlTwoPack` if your copy differs.
-3. **Thief** takes a **random** card from each other player's hand (the digital
-   equivalent of drawing blindly from a fanned hand).
+3. **Thief** lets the actor manually pick **one face-down card from every other
+   nonempty active hand**, one opponent at a time. Backs are shuffled and use
+   anonymous choice handles; card faces and physical ids remain private. The
+   whole effect costs one move. After 30 seconds without a selection (while
+   someone is online), the server completes remaining picks randomly. This is
+   the chosen online interaction for drawing blindly from a fanned hand.
 4. **Wholesaler**: revealed cards are public; the non-ingredient cards go to the
    **discard pile**. Rendang counts as an ingredient.
 5. **Officer** takes `min(2, target hand size)` cards; the peek is private to

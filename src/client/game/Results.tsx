@@ -5,6 +5,8 @@ import { t } from '../i18n';
 import type { TableInfo } from './helpers';
 import { CrownIcon } from '../../components/Icons';
 import type { CSSProperties } from 'react';
+import type { TableScore } from '../../shared/social';
+import { TableScoreboard } from '../ui/RoomTools';
 
 export function Results({
   info,
@@ -12,12 +14,14 @@ export function Results({
   onRematch,
   onLobby,
   onClose,
+  tableScores,
 }: {
   info: TableInfo;
   isHost: boolean;
   onRematch: () => void;
   onLobby: () => void;
   onClose: () => void;
+  tableScores?: TableScore[];
 }) {
   const r = info.v.result!;
   const youWon = r.winnerIds.includes(info.v.youId ?? '');
@@ -93,6 +97,7 @@ export function Results({
           );
         })}
       </ol>
+      <div className="mt-5"><TableScoreboard scores={tableScores} /></div>
     </Modal>
   );
 }

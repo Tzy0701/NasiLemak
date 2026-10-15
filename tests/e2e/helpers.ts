@@ -130,6 +130,16 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
       await tryPlay(page, kind, async () => {
         await page.getByTestId('confirm-play').click();
         await expect(page.getByTestId(`flow-${kind}`)).toBeHidden();
+        if (kind === 'thief') {
+          const dialog = page.getByTestId('thief-take');
+          await expect(dialog).toBeVisible();
+          for (let victim = 0; victim < 6 && await dialog.isVisible(); victim++) {
+            const title = await dialog.getByRole('heading').first().textContent();
+            await page.getByTestId('thief-card').first().click();
+            await expect.poll(async () => await dialog.isVisible() ? dialog.getByRole('heading').first().textContent() : '').not.toBe(title);
+          }
+          await expect(dialog).toBeHidden();
+        }
       })
     )
       return 'played';

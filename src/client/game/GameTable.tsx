@@ -13,7 +13,10 @@ import { useRoom } from '../pages/RoomPage';
 import { play } from '../sound';
 import { CardReferenceModal, HowToPlayModal, SettingsModal } from '../ui/InfoModals';
 import { Toasts, pushError, pushToast } from '../ui/toast';
-import { ChaseCrowFlow, CardDetail, type Flow, OfficerTake, PlayCardFlow, RecipePicker, TradeComposer, TradeResponse } from './Flows';
+import { ChaseCrowFlow, CardDetail, type Flow, OfficerTake, ThiefTake, PlayCardFlow, RecipePicker, TradeComposer, TradeResponse } from './Flows';
+import { RoomTools } from '../ui/RoomTools';
+import { setPrefs, usePrefs } from '../prefs';
+import { tableEvents } from './animations';
 import { Results } from './Results';
 import { CenterPiles, OpponentSeat } from './TablePieces';
 import { canChaseCrow, canMake, canTrade, formatLog, kindName, sortHand, tableInfo, useMediaQuery } from './helpers';
@@ -51,6 +54,9 @@ export function GameTable() {
   const [flow, setFlow] = useState<Flow | null>(null);
   const [showResults, setShowResults] = useState(true);
   const [inspection, setInspection] = useState<Inspection | null>(null);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [replay, setReplay] = useState<ReturnType<typeof tableEvents>[number] | null>(null);
+  const prefs = usePrefs();
   const { event, reduced } = useTableEvents(v);
   const countdown = useCountdown(v.turn.deadline);
   const members = useMemo(() => new Map(room.members.map((m) => [m.id, m])), [room.members]);
@@ -98,7 +104,7 @@ export function GameTable() {
         play('fly');
         pushToast(formatLog(e, info), 'error');
       } else if (
-        (e.to && e.actor !== v.youId && e.key !== 'draw-private') ||
+        (e.to && e.actor !== v.youId && e.key !== 'draw-private') || e.key === 'thief-private' ||
         (e.target === v.youId && ['officer', 'fan', 'crow-pass', 'sioyen', 'supplier-gave'].includes(e.key)) ||
         e.key === 'crow-arrives' ||
         e.key.startsWith('trade-') ||
@@ -119,7 +125,13 @@ export function GameTable() {
     if (!myTurn && flow && ['make', 'play', 'trade', 'chase', 'endTurn'].includes(flow.type)) setFlow(null);
   }, [myTurn, flow]);
 
-  const hand = useMemo(() => sortHand(v.hand), [v.hand]);
+  const hand = useMemo(() => {
+    const cards = sortHand(v.hand);
+    const counts = new Map(cards.map(c => [c.kind, cards.filter(x => x.kind === c.kind).length]));
+    if (prefs.handSort === 'count') cards.sort((a, b) => counts.get(b.kind)! - counts.get(a.kind)! || kindName(a.kind).localeCompare(kindName(b.kind)));
+    if (prefs.handSort === 'name') cards.sort((a, b) => kindName(a.kind).localeCompare(kindName(b.kind)));
+    return cards;
+  }, [v.hand, prefs.handSort, prefs.language]);
   // Identical cards are stacked with a ×N badge so phones need less scrolling.
   const groups = useMemo(() => {
     const out: { card: (typeof hand)[number]; count: number; isNew: boolean }[] = [];
@@ -155,7 +167,7 @@ export function GameTable() {
     <ol className="space-y-1 text-[0.82rem] leading-snug" data-testid="game-log">
       {[...v.log].reverse().map((e) => (
         <li key={e.seq} className={`rounded-lg px-2 py-1 ${e.to ? 'log-private bg-kunyit-300/30' : e.key === 'turn-start' ? 'bg-leaf-100 font-bold' : 'bg-white/60'}`}>
-          {formatLog(e, info)}
+          {e.to ? formatLog(e, info) : <button className="recent-action-button" onClick={() => setRecentOpen(true)}>{formatLog(e, info)}</button>}
         </li>
       ))}
     </ol>
@@ -183,6 +195,7 @@ export function GameTable() {
         </div>
         <span className="hidden font-display text-sm tracking-widest text-leaf-100 sm:inline">{room.code}</span>
         <LanguageButton />
+        <RoomTools />
         {!wide && (
           <button className="table-icon-button rounded-xl p-2" onClick={() => setFlow({ type: 'log' })} aria-label={t('game.log')} data-testid="log-button">
             <LogIcon />
@@ -294,6 +307,7 @@ export function GameTable() {
             {myTurn && me?.crow && <p className="px-1 text-xs font-semibold text-sambal-600">{t('game.crowBlocks')}</p>}
 
             {/* Hand */}
+            <div className="hand-tools"><button className="btn-ghost btn-sm" onClick={() => setRecentOpen(true)} data-testid="recent-actions">{t('extras.recent')}</button><label>{t('extras.sort')} <select value={prefs.handSort ?? 'category'} onChange={e => setPrefs({ handSort: e.target.value as 'category' | 'count' | 'name' })} data-testid="hand-sort">{(['category', 'count', 'name'] as const).map(sort => <option key={sort} value={sort}>{t(`extras.${sort}`)}</option>)}</select></label></div>
             <div className="no-scrollbar flex snap-x gap-1.5 overflow-x-auto px-1 pb-2 pt-3 sm:justify-center sm:gap-2" data-testid="hand">
               {hand.length === 0 && <p className="py-6 text-sm italic text-kopi-700">{t('game.noCards')}</p>}
               {groups.map(({ card: c, count, isNew }) => (
@@ -335,7 +349,10 @@ export function GameTable() {
       </div>
 
       {/* Required server-driven prompts */}
-      {pending && pending.actorId === v.youId && v.status === 'playing' && <OfficerTake info={info} act={act} />}
+      {pending?.type === 'officer' && pending.actorId === v.youId && v.status === 'playing' && <OfficerTake info={info} act={act} />}
+      {pending?.type === 'thief' && pending.actorId === v.youId && v.status === 'playing' && <ThiefTake key={pending.targetId} info={info} act={act} />}
+      {recentOpen && <Modal open wide onClose={() => setRecentOpen(false)} title={t('extras.recent')} testId="recent-actions-modal"><p className="mb-3 text-sm">{t('extras.publicOnly')}</p><div className="recent-action-list">{[...v.log].filter(entry => !entry.to).slice(-15).reverse().map(entry => <article key={entry.seq}><small>#{entry.turn}</small><p>{formatLog(entry, info)}</p>{tableEvents([entry], v)[0] && <button className="btn-ghost btn-sm mt-2" onClick={() => { const effect = tableEvents([entry], v)[0]!; setRecentOpen(false); setReplay({ ...effect, id: `replay-${Date.now()}`, packs: undefined }); setTimeout(() => setReplay(null), effect.duration); }}>{t('extras.replay')}</button>}</article>)}</div></Modal>}
+      {replay && <TableEffects event={replay} v={v} reduced={reduced} />}
       {iMustAnswerTrade && v.status === 'playing' && flow?.type !== 'counter' && (
         <TradeResponse info={info} act={act} onCounter={() => setFlow({ type: 'counter' })} />
       )}
@@ -465,6 +482,7 @@ export function GameTable() {
           onClose={() => setShowResults(false)}
           onRematch={() => lobby({ op: 'rematch' })}
           onLobby={() => lobby({ op: 'backToLobby' })}
+          tableScores={room.tableScores}
         />
       )}
     </div></CardRulesContext.Provider>

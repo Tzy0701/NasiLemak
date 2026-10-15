@@ -518,11 +518,7 @@ function doPlay(state: GameState, actorId: string, a: PlayAction): void {
       state.discardPile.push(card);
       useMove(state);
       log(state, { key: 'thief', actor: p.id, n: victims.length });
-      for (const v of victims) {
-        const stolen = v.hand.splice(randInt(state.rng, v.hand.length), 1)[0]!;
-        p.hand.push(stolen);
-        log(state, { key: 'thief-private', actor: p.id, target: v.id, kinds: [stolen.kind], to: [p.id, v.id] });
-      }
+      nextThiefTarget(state, p.id, victims.map(v => v.id), []);
       break;
     }
     case 'wholesaler': {
@@ -652,6 +648,48 @@ function doOfficerTake(state: GameState, actorId: string, cardIds: unknown): voi
   log(state, { key: 'officer-take', actor: p.id, target: t.id, n: taken.length });
   log(state, { key: 'officer-private', actor: p.id, target: t.id, kinds: taken.map((c) => c.kind), to: [p.id, t.id] });
   afterMove(state);
+}
+
+function nextThiefTarget(state: GameState, actorId: string, remaining: string[], completed: string[]): void {
+  while (remaining.length) {
+    const targetId = remaining.shift()!;
+    const target = getPlayer(state, targetId);
+    if (target.gone || !target.hand.length) continue;
+    const shuffled = shuffleInPlace(state.rng, [...target.hand]);
+    state.turn.pending = {
+      type: 'thief', actorId, targetId, take: 1, remaining, completed,
+      choices: shuffled.map(card => ({ id: `pick-${++state.idSeq}`, cardId: card.id })),
+    };
+    return;
+  }
+  state.turn.pending = null;
+}
+
+function doThiefTake(state: GameState, actorId: string, targetId: string, choiceId: string): void {
+  const actor = requireActive(state, actorId);
+  const pending = state.turn.pending;
+  if (!pending || pending.type !== 'thief' || pending.actorId !== actorId) fail('nothing-pending');
+  if (targetId !== pending.targetId) fail('invalid-thief-choice');
+  const choice = pending.choices.find(item => item.id === choiceId);
+  if (!choice) fail('invalid-thief-choice');
+  const target = getPlayer(state, targetId);
+  const stolen = handCard(target, choice.cardId);
+  takeFromHand(target, stolen.id);
+  actor.hand.push(stolen);
+  log(state, { key: 'thief-take', actor: actorId, target: targetId, n: 1 });
+  log(state, { key: 'thief-private', actor: actorId, target: targetId, kinds: [stolen.kind], to: [actorId, targetId] });
+  nextThiefTarget(state, actorId, [...pending.remaining], [...pending.completed, targetId]);
+  afterMove(state);
+}
+
+/** Finish pending choices on timeout without leaking their contents to other players. */
+export function systemResolveThief(state: GameState): void {
+  while (state.turn.pending?.type === 'thief' && state.status === 'playing') {
+    const pending = state.turn.pending;
+    const choice = pending.choices[randInt(state.rng, pending.choices.length)];
+    if (!choice) { nextThiefTarget(state, pending.actorId, [...pending.remaining], [...pending.completed]); continue; }
+    doThiefTake(state, pending.actorId, pending.targetId, choice.id);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -803,6 +841,9 @@ export function applyAction(state: GameState, actorId: string, action: GameActio
       case 'officerTake':
         doOfficerTake(state, actorId, action.cardIds);
         break;
+      case 'thiefTake':
+        doThiefTake(state, actorId, action.targetId, action.choiceId);
+        break;
       case 'passCrow':
         doPassCrow(state, actorId, action);
         break;
@@ -852,6 +893,9 @@ export function systemCancelTrade(state: GameState, reason: 'timeout' | 'disconn
  */
 export function systemSkipTurn(state: GameState, reason: 'timeout' | 'afk' | 'host'): void {
   if (state.status !== 'playing') return;
+  const turnBefore = state.turn.number;
+  systemResolveThief(state);
+  if (state.turn.number !== turnBefore || state.status !== 'playing') return;
   const pending = state.turn.pending;
   if (pending?.type === 'officer') {
     const actor = getPlayer(state, pending.actorId);
@@ -891,10 +935,13 @@ export function removePlayer(state: GameState, playerId: string): void {
     log(state, { key: 'trade-expired-disconnect', actor: tr.proposerId, target: tr.targetId });
   }
   const pending = state.turn.pending;
-  if (pending && pending.targetId === playerId) state.turn.pending = null;
+  if (pending?.type === 'officer' && pending.targetId === playerId) state.turn.pending = null;
   p.gone = true;
   state.discardPile.push(...p.hand);
   p.hand = [];
+  if (pending?.type === 'thief' && !wasActive && pending.targetId === playerId) {
+    nextThiefTarget(state, pending.actorId, [...pending.remaining], [...pending.completed]);
+  }
   for (const crow of state.crows) {
     if (crow.holderId === playerId) {
       crow.holderId = null;

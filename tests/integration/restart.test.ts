@@ -3,8 +3,8 @@ import { TestPlayer, expectOk, makeRoom, readyAll } from './client';
 import { playGame } from './driver';
 import { startServer } from './server';
 
-describe('server restart (Durable Object evicted / new deployment)', () => {
-  it('restores the room from SQLite storage; players reconnect and finish the game', async () => {
+describe('server restart with retained local files', () => {
+  it('restores room files; players reconnect and finish the game', async () => {
     const port = 8793;
     let server = await startServer(port);
     const players = await makeRoom(server.url, 3);
@@ -16,7 +16,7 @@ describe('server restart (Durable Object evicted / new deployment)', () => {
     await playGame(players, ['collector', 'trader', 'aggressive'], { maxActions: 25 });
     const before = players.map((p) => ({ hand: p.game!.hand.map((c) => c.id).sort(), turn: p.game!.turn.number, version: p.room!.version }));
 
-    // Kill the whole runtime: every Durable Object instance and socket is gone.
+    // Kill the process: room memory and sockets are gone; local files remain.
     await server.stop();
     players.forEach((p) => p.drop());
     server = await startServer(port);

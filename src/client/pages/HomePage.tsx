@@ -3,8 +3,8 @@ import { Avatar } from '../../components/Avatar';
 import { ART_ROOT, CardArt } from '../../components/art/CardArt';
 import { isValidRoomCode, normaliseRoomCode } from '../../shared/protocol';
 import { t } from '../i18n';
-import { ApiError, createRoom, joinRoom } from '../net/api';
-import { getPrefs, latestSession, saveSession, setPrefs, usePrefs } from '../prefs';
+import { ApiError, createRoom, joinRoom, roomInfo } from '../net/api';
+import { clearSession, getPrefs, latestSession, saveSession, setPrefs, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { CardReferenceModal, HowToPlayModal, SettingsModal } from '../ui/InfoModals';
 import { LanguageButton } from '../ui/LanguageButton';
@@ -28,6 +28,16 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<'how' | 'cards' | 'settings' | null>(null);
   const last = latestSession();
+  async function resumeLast() {
+    if (!last) return;
+    setBusy('join');
+    setError(null);
+    try { await roomInfo(last.code); navigate(`/r/${last.code}`); }
+    catch (err) {
+      if (err instanceof ApiError && err.code === 'room-not-found') { clearSession(last.code); setError(t('extras.roomGone')); }
+      else setError(errorText(err));
+    } finally { setBusy(null); }
+  }
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -100,8 +110,8 @@ export function HomePage() {
           </div>
         )}
         {last && (
-          <button className="btn-leaf mb-4 w-full" onClick={() => navigate(`/r/${last.code}`)}>
-            {t('home.rejoin', { code: last.code })}
+          <button className="btn-leaf mb-4 w-full" onClick={() => { void resumeLast(); }} disabled={!!busy} data-testid="continue-room">
+            {busy ? t('extras.checking') : t('home.rejoin', { code: last.code })}
           </button>
         )}
         <div className="grid gap-4 md:grid-cols-2">

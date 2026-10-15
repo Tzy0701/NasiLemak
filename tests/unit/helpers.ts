@@ -50,6 +50,13 @@ export function bad(state: GameState, pid: string, action: GameAction, error: st
 
 export const RECIPE: CardKind[] = ['nasi', 'telur', 'kacang', 'sambal', 'timun'];
 
+export function chooseAllThiefCards(state: GameState): void {
+  while (state.turn.pending?.type === 'thief') {
+    const pending = state.turn.pending;
+    ok(state, pending.actorId, { type: 'thiefTake', targetId: pending.targetId, choiceId: pending.choices[0]!.id });
+  }
+}
+
 /** Give a player a ready-made Nasi Lemak (bypassing the rules) for setup purposes. */
 export function giveNasiLemak(state: GameState, pid: string, packs: number, fly = false): string {
   const p = state.players.find((x) => x.id === pid)!;

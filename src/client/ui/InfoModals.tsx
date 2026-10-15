@@ -102,6 +102,7 @@ export function SettingsModal({ open, onClose, avatar, onAvatarChange }: { open:
         <p className="font-semibold">{t('common.avatarCount')}</p>
         <AvatarPicker value={onAvatarChange ? avatar : prefs.avatar} onChange={choose} disabled={busy} />
         <Toggle label={t('settings.sound')} value={prefs.sound} onChange={(v) => setPrefs({ sound: v })} />
+        <Toggle label={t('extras.mute')} value={!!prefs.muteSocial} onChange={(v) => setPrefs({ muteSocial: v })} />
         <Toggle label={t('settings.reducedMotion')} value={prefs.reducedMotion} onChange={(v) => setPrefs({ reducedMotion: v })} />
         <label className="flex items-center justify-between gap-3">
           <span className="font-semibold">{t('settings.language')}</span>

@@ -224,6 +224,11 @@ export function botDecide(kind: BotKind, v: GameView, rng: RngState): GameAction
     return { type: 'respondTrade', tradeId: tr.id, response: evaluateTrade(ctx, kind) };
   }
   if (v.turn.playerId !== me.id) return null;
+  if (v.turn.pending?.type === 'thief') {
+    const pending = v.turn.pending;
+    const choiceId = pick(rng, pending.choices ?? []);
+    return choiceId ? { type: 'thiefTake', targetId: pending.targetId, choiceId } : null;
+  }
   if (tr) return null; // waiting for the other side
   const take = officerTakeAction(ctx);
   if (take) return take;

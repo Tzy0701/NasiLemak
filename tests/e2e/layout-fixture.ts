@@ -32,6 +32,8 @@ export async function installLayoutRoom(page: Page, initial = layoutState(), pre
     localStorage.setItem('nl.prefs.v1', JSON.stringify({ language: prefs.language ?? 'en', sound: false, reducedMotion: prefs.reducedMotion ?? true, lastName: 'Alexandriaabcdefghijk', avatar: 8 }));
     localStorage.setItem('nl.sessions.v1', JSON.stringify({ AUD234: { code: 'AUD234', playerId: 'layout-0', token: 'layout-test-only', savedAt: Date.now() } }));
   }, prefs);
+  // Reconnect probes existence over HTTP as well as opening a socket.
+  await page.route('**/api/rooms/AUD234', route => route.fulfill({ json: { code: current.room.code, status: current.room.status, players: current.room.members.length, maxPlayers: 7, mode: current.room.mode } }));
   await page.routeWebSocket('**/api/rooms/AUD234/ws', socket => {
     sockets.add(socket);
     socket.onClose(() => sockets.delete(socket));

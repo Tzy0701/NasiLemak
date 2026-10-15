@@ -9,7 +9,6 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
-  globalTeardown: './tests/e2e/teardown.ts',
   use: {
     baseURL: process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
@@ -18,10 +17,9 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        // Production build served by workerd (vite preview), with the test
-        // Wrangler config (fast timers). Isolated from source edits / HMR.
-        command: `npx vite build && npx vite preview --port ${PORT} --strictPort --host 127.0.0.1`,
-        env: { WRANGLER_CONFIG: 'tests/wrangler.test.jsonc', PERSIST_DIR: '.wrangler/state-e2e' },
+        // Production Node build, isolated test state and shortened timers.
+        command: `npm run build && node dist/server/index.mjs --port ${PORT}`,
+        env: { FAST_TIMERS: '1', ROOM_STORE_PATH: '.room-data/e2e', HOST: '127.0.0.1' },
         url: `http://127.0.0.1:${PORT}/api/health`,
         reuseExistingServer: false,
         timeout: 240_000,

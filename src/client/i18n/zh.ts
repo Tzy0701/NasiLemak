@@ -1,14 +1,16 @@
 import type { Dict } from './en';
+import { extrasZh } from './extras';
 
 type Translation<T> = T extends string ? string : T extends readonly string[] ? readonly string[] : { [K in keyof T]: Translation<T[K]> };
 
 /** Simplified Chinese copy. Malay card subtitles retain the original game names. */
 export const zh = {
+  extras: extrasZh,
   design: {
     hand: '我的手牌 · {n} 张', recipe: '椰浆饭配方', recipeHint: '5 种不同食材 → 1 张椰浆饭卡',
     shortGoal: '率先达到 {n} 包有效椰浆饭获胜。', longGoal: '得分牌堆用尽时，有效包数最多者获胜。', moves: '剩余 {n} 次行动', movesLabel: '剩余行动',
     effects: {
-      supplier: '指定一种基础食材，收走所有对手的该食材。', thief: '从每位对手手中随机偷取 1 张牌。',
+      supplier: '指定一种基础食材，收走所有对手的该食材。', thief: '亲手从每位对手的背面手牌中各选取 1 张。',
       wholesaler: '翻开 3 张牌，留下食材，其余弃掉。', officer: '查看一位对手的手牌，拿走最多 2 张。',
       makcik: '只需 {n} 种不同食材即可制作椰浆饭。', fly: '使对手一张椰浆饭暂时不计分。',
       swatter: '清除自己椰浆饭上的一只苍蝇。', fan: '把自己的苍蝇吹到对手的椰浆饭上。',
@@ -61,7 +63,7 @@ export const zh = {
     timun: { name: '黄瓜', local: 'Timun', text: '食材牌。制作椰浆饭需要的五种食材之一。' },
     rendang: { name: '仁当', local: 'Rendang', text: '万能食材，可代替五种食材中的任意一种。可以交易，不能由供应商指定收取。' },
     supplier: { name: '供应商', local: 'Pembekal', text: '指定一种基础食材（不能是仁当），其他玩家必须交出所有该食材。若没有人持有，也不能重新指定。' },
-    thief: { name: '小偷', local: 'Pencuri', text: '从每位其他玩家手中随机偷取一张牌。' },
+    thief: { name: '小偷', local: 'Pencuri', text: '逐位亲手选择，从每位其他玩家的背面手牌中各偷一张。' },
     wholesaler: { name: '批发商', local: 'Pemborong', text: '翻开抽牌堆顶的 3 张牌，只保留食材，其余放入弃牌堆。' },
     officer: { name: '官员', local: 'Pegawai', text: '查看另一位玩家的全部手牌，并拿走任意 2 张；不足时拿走现有的牌。' },
     makcik: { name: '椰浆饭阿姨', local: 'Mak Cik', text: '只需 {n} 种不同食材即可制作椰浆饭，无需凑齐 5 种。' },
@@ -104,6 +106,10 @@ export const zh = {
   settings: { title: '设置', sound: '音效', reducedMotion: '减少动画', language: '语言' },
   animation: { draw: '{name} 抽了 {n} 张牌', make: '{name} 制作了椰浆饭！', play: '{name} 使用了{card}', target: '→ {name}', crow: '乌鸦来了！', chase: '{name} 赶走了乌鸦', trade: '交易完成！', turn: '轮到你了！', reshuffle: '重新洗牌中', skip: '跳过动画' },
   errors: {
+    'server-full': '牌桌服务繁忙，请稍后再开房。',
+    'invalid-thief-choice': '选牌状态已更新，请从当前背面牌中重新选择。',
+    'social-rate-limited': '稍等一下，再发送表情或短句吧。',
+    'bad-request': '当前无法执行这个操作，请重试。',
     'not-your-turn': '还没轮到你。', 'no-moves-left': '本回合没有剩余行动。', 'card-not-in-hand': '这张牌已不在你的手中。', 'invalid-recipe': '所选食材必须互不相同。', 'crow-blocks': '乌鸦阻止了你制作椰浆饭。',
     'nl-pile-empty': '椰浆饭牌堆已经用尽。', 'cannot-target-self': '不能选择自己为目标。', 'already-has-fly': '这张椰浆饭已经有苍蝇了。', 'no-fly-there': '这张椰浆饭没有苍蝇。', 'not-your-nasi-lemak': '这不是你的椰浆饭。',
     'no-valid-target': '当前没有可选择的目标。', 'trade-in-progress': '请先完成或取消当前交易。', 'resolve-pending-first': '请先完成当前行动。', 'trade-missing-cards': '你没有交易要求的牌。', 'trade-needs-both-sides': '交易双方至少各给出一张牌。',
@@ -114,7 +120,7 @@ export const zh = {
   log: {
     'game-start': '游戏开始，共 {n} 位玩家。祝大家吃得开心！', 'turn-start': '轮到 {actor}。', draw: '{actor} 抽了 {n} 张牌。', 'draw-private': '你抽到了：{kinds}。', 'turn-end': '{actor} 结束了回合。', reshuffle: '抽牌堆已空，重新洗入弃牌（{n} 张）。',
     make: '{actor} 制作了一张椰浆饭！（共 {n} 张）', 'make-private': '你的新椰浆饭价值 {n} 包。', 'crow-arrives': '一只乌鸦落到了 {actor} 面前！', supplier: '{actor} 使用供应商，指定{ingredient}，共收取 {n} 张。', 'supplier-gave': '{actor} 把 {n} 张{ingredient}交给了 {target}。',
-    thief: '{actor} 使用小偷，从 {n} 位玩家手中各偷了一张牌。', 'thief-private': '{actor} 从 {target} 手中偷走了{kinds}。', wholesaler: '{actor} 使用批发商，翻开{kinds}，保留了 {n} 张。', officer: '{actor} 对 {target} 使用了官员。', 'officer-take': '{actor} 从 {target} 手中拿走了 {n} 张牌。', 'officer-private': '{actor} 从 {target} 手中拿走了{kinds}。',
+    thief: '{actor} 使用小偷，正在从 {n} 位玩家手中选牌。', 'thief-take': '{actor} 从 {target} 手中偷走了一张牌。', 'thief-private': '{actor} 从 {target} 手中偷走了{kinds}。', wholesaler: '{actor} 使用批发商，翻开{kinds}，保留了 {n} 张。', officer: '{actor} 对 {target} 使用了官员。', 'officer-take': '{actor} 从 {target} 手中拿走了 {n} 张牌。', 'officer-private': '{actor} 从 {target} 手中拿走了{kinds}。',
     makcik: '{actor} 请来了椰浆饭阿姨！', fly: '{actor} 在 {target} 的椰浆饭上放了一只苍蝇。', swatter: '{actor} 拍掉了一只苍蝇。', fan: '{actor} 把苍蝇吹到了 {target} 的椰浆饭上。', sioyen: '橘猫出动！{actor} 捕捉了 {target} 的乌鸦，获得 {n} 张食材。', 'crow-pass': '{actor} 把乌鸦赶到了 {target} 面前（收集 {n} 张食材）。',
     'trade-proposed': '{actor} 向 {target} 提出了交易。', 'trade-countered': '{actor} 向 {target} 提出了还价。', 'trade-rejected': '{actor} 拒绝了与 {target} 的交易。', 'trade-cancelled': '{actor} 取消了与 {target} 的交易。', 'trade-expired-timeout': '{actor} 与 {target} 的交易超时。', 'trade-expired-disconnect': '{actor} 与 {target} 的交易因断线而取消。', 'trade-done': '{actor} 用 {n} 张牌与 {target} 交换了 {m} 张牌。', 'trade-private': '{actor} 给了 {target}：{kinds}。',
     'turn-skipped-timeout': '{actor} 的回合时间已到。', 'turn-skipped-afk': '{actor} 暂时离线，跳过回合。', 'turn-skipped-host': '房主跳过了 {actor} 的回合。', 'player-left': '{actor} 离开了游戏。', 'game-over-target': '游戏结束！', 'game-over-nl-depleted': '椰浆饭牌堆已用尽，游戏结束！', 'game-over-players-left': '玩家人数不足，游戏结束。', 'game-over-aborted': '房主结束了游戏。', winner: '{actor} 以 {n} 包椰浆饭获胜！',

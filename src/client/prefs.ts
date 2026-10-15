@@ -9,6 +9,8 @@ export interface Prefs {
   sound: boolean;
   reducedMotion: boolean;
   lastName: string;
+  muteSocial?: boolean;
+  handSort?: 'category' | 'count' | 'name';
 }
 
 const PREFS_KEY = 'nl.prefs.v1';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, packsOf, removePlayer, systemSkipTurn } from '../../src/game/rules/engine';
 import { projectGame } from '../../src/game/view';
-import { RECIPE, bad, cardOf, giveNasiLemak, hand, ok, setHand, setup } from './helpers';
+import { RECIPE, bad, cardOf, chooseAllThiefCards, giveNasiLemak, hand, ok, setHand, setup } from './helpers';
 
 describe('turns and moves', () => {
   it('allows at most 3 moves, then the turn passes and the next player draws 2', () => {
@@ -115,6 +115,7 @@ describe('action cards', () => {
     setHand(s, 'p2', []);
     setHand(s, 'p3', ['fan']);
     ok(s, 'p0', { type: 'play', cardId: cardOf(s, 'p0', 'thief').id, card: 'thief' });
+    chooseAllThiefCards(s);
     expect(hand(s, 'p0')).toHaveLength(2);
     expect(hand(s, 'p1')).toHaveLength(1);
     expect(hand(s, 'p3')).toHaveLength(0);

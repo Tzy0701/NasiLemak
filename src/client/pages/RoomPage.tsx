@@ -9,6 +9,7 @@ import { GameTable } from '../game/GameTable';
 import { Lobby } from './Lobby';
 import { Cover } from './HomePage';
 import { LanguageButton } from '../ui/LanguageButton';
+import { SocialEffects } from '../ui/RoomTools';
 
 interface RoomCtx {
   client: RoomClient;
@@ -45,6 +46,7 @@ function ConnectedRoom({ code, token }: { code: string; token: string }) {
       <div className="connection-view flex min-h-full flex-col items-center justify-center gap-4 p-6 text-center">
         <Cover />
         <p className="animate-pulse font-display text-xl text-leaf-700">{t('game.connection.connecting')}</p>
+        <p className="max-w-sm text-sm text-kopi-700">{t('extras.waking')}</p>
       </div>
     );
   }
@@ -61,6 +63,7 @@ function ConnectedRoom({ code, token }: { code: string; token: string }) {
           </div>
         )}
         {snap.room.status === 'lobby' || !snap.game ? <Lobby /> : <GameTable key={snap.room.gamesPlayed} />}
+        <SocialEffects />
       </div>
     </Ctx.Provider>
   );

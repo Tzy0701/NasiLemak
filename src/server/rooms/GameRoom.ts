@@ -1,10 +1,10 @@
 /**
- * One Durable Object per private room. It is the single source of truth for
+ * One serially hosted service per private room. It is the single source of truth for
  * the lobby and the game: it authenticates players, validates every intent
- * with the rules engine, persists state to SQLite-backed storage and pushes a
- * personalised snapshot to each connected WebSocket (Hibernation API).
+ * with the rules engine, persists state through the host and pushes a
+ * personalised snapshot to each authenticated WebSocket.
  */
-import { DurableObject } from 'cloudflare:workers';
+import type { RoomContext, RoomEnv, RoomSocket } from '../runtime';
 import { BOT_KINDS, type BotKind, botDecide } from '../../game/bots/bots';
 import { CUSTOM_PRESET_IDS, customPreset, customProblems, sanitizeCustomConfig } from '../../game/custom/customRules';
 import { type GameConfig, type GameLength, type GameMode, officialConfig } from '../../game/rules/config';
@@ -15,6 +15,7 @@ import {
   removePlayer,
   systemCancelTrade,
   systemSkipTurn,
+  systemResolveThief,
 } from '../../game/rules/engine';
 import { cryptoSeed } from '../../game/rng';
 import type { GameAction, GameState } from '../../game/types';
@@ -32,7 +33,7 @@ import {
   isValidAvatar,
 } from '../../shared/protocol';
 import { randomId, randomToken, sha256Hex, timingSafeEqualHex } from '../crypto';
-import type { Env } from '../env';
+import { PHRASES, STICKERS, type SocialEvent, type TableScore } from '../../shared/social';
 
 // Timings (ms)
 export const TIMINGS = {
@@ -42,6 +43,7 @@ export const TIMINGS = {
   afkSkip: 60_000,
   hostTransfer: 45_000,
   botDelay: 1_100,
+  choiceTimeout: 30_000,
   idleCleanupEmpty: 30 * 60_000,
   idleCleanupAny: 48 * 60 * 60_000,
 };
@@ -54,6 +56,7 @@ const FAST_TIMINGS: typeof TIMINGS = {
   afkSkip: 2_500,
   hostTransfer: 2_500,
   botDelay: 120,
+  choiceTimeout: 5_000,
   idleCleanupEmpty: 30_000,
   idleCleanupAny: 48 * 60 * 60_000,
 };
@@ -86,11 +89,15 @@ interface RoomRecord {
   lastActivity: number;
   /** All humans disconnected: freeze game timers until someone returns. Optional for old rooms. */
   pausedAt?: number | null;
+  tableScores?: TableScore[];
+  scoredGame?: number;
   timers: {
     tradeKey: string | null;
     tradeAt: number;
     turnKey: number;
     turnAt: number;
+    choiceKey?: string | null;
+    choiceAt?: number;
   };
 }
 
@@ -109,19 +116,21 @@ type LobbyResult = string | null;
 
 const RATE = { perSec: 15, burst: 40, maxStrikes: 200 };
 
-export class GameRoom extends DurableObject<Env> {
+export class GameRoom {
   private room: RoomRecord | null = null;
   private game: GameState | null = null;
-  private buckets = new WeakMap<WebSocket, Bucket>();
+  private buckets = new WeakMap<RoomSocket, Bucket>();
   private acks = new Map<string, Map<string, ServerMessage>>();
+  private socialAt = new Map<string, number>();
   private tm: typeof TIMINGS;
 
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
+  constructor(private ctx: RoomContext, env: RoomEnv) {
     this.tm = env.FAST_TIMERS === '1' ? FAST_TIMINGS : TIMINGS;
     ctx.blockConcurrencyWhile(async () => {
       this.room = (await ctx.storage.get<RoomRecord>('room')) ?? null;
       this.game = (await ctx.storage.get<GameState>('game')) ?? null;
+      const savedAcks = await ctx.storage.get<[string, [string, ServerMessage][]][]>('acks');
+      if (savedAcks) this.acks = new Map(savedAcks.map(([pid, entries]) => [pid, new Map(entries)]));
       if (this.room) {
         // A runtime restart may lose sockets without delivering close events.
         // Use the last known activity/disconnection as a conservative pause
@@ -133,12 +142,14 @@ export class GameRoom extends DurableObject<Env> {
           }
         }
         if (!this.hasConnectedHumans() && this.room.pausedAt == null) this.room.pausedAt = disconnectedAt;
+        await this.persist();
+        await this.scheduleAlarm();
       }
     });
   }
 
   // -------------------------------------------------------------------------
-  // RPC from the Worker
+  // Room operations called by the serial host
   // -------------------------------------------------------------------------
 
   async create(code: string, rawName: unknown, avatar?: unknown): Promise<{ ok: true; res: CreateRoomResponse } | { ok: false; error: string }> {
@@ -200,24 +211,18 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // -------------------------------------------------------------------------
-  // WebSocket (Hibernation API)
+  // Authenticated WebSocket sessions
   // -------------------------------------------------------------------------
 
-  async fetch(request: Request): Promise<Response> {
-    if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 426 });
-    }
-    if (!this.room || await this.closeIfExpired()) return new Response('Room not found', { status: 404 });
-    if (this.ctx.getWebSockets().length > 64) return new Response('Too many connections', { status: 429 });
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
-    this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ pid: null, at: Date.now() } satisfies SocketAttachment);
+  async connect(socket: RoomSocket): Promise<boolean> {
+    if (!this.room || await this.closeIfExpired() || this.ctx.getWebSockets().length >= 64) return false;
+    this.ctx.acceptWebSocket(socket);
+    socket.serializeAttachment({ pid: null, at: Date.now() } satisfies SocketAttachment);
     await this.scheduleAlarm();
-    return new Response(null, { status: 101, webSocket: client });
+    return true;
   }
 
-  async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
+  async webSocketMessage(ws: RoomSocket, raw: string | ArrayBuffer): Promise<void> {
     if (!this.room || await this.closeIfExpired()) {
       this.send(ws, { t: 'kicked', reason: 'room-closed' });
       ws.close(4004, 'room closed');
@@ -277,6 +282,27 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    if (msg.t === 'social') {
+      if (typeof msg.id !== 'string' || msg.id.length > 64) return;
+      const prior = this.acks.get(member.id)?.get(msg.id);
+      if (prior) { this.send(ws, prior); return; }
+      const valid = msg.kind === 'sticker' ? (STICKERS as readonly string[]).includes(msg.preset) : msg.kind === 'phrase' && (PHRASES as readonly string[]).includes(msg.preset);
+      const target = msg.targetId ?? member.id;
+      const error = !valid || !this.room.members.some(m => m.id === target) ? 'bad-request' : Date.now() - (this.socialAt.get(member.id) ?? 0) < 2_000 ? 'social-rate-limited' : null;
+      const ack: ServerMessage = error ? { t: 'ack', id: msg.id, ok: false, error } : { t: 'ack', id: msg.id, ok: true };
+      this.remember(member.id, msg.id, ack);
+      if (!error) {
+        this.socialAt.set(member.id, Date.now());
+        const event: SocialEvent = { id: randomId(), senderId: member.id, targetId: target, kind: msg.kind, preset: msg.preset, at: Date.now() };
+        for (const socket of this.ctx.getWebSockets()) {
+          const attachment = socket.deserializeAttachment() as SocketAttachment | null;
+          if (attachment?.pid && this.room.members.some(m => m.id === attachment.pid)) this.send(socket, { t: 'social', event });
+        }
+      }
+      this.send(ws, ack);
+      return;
+    }
+
     if (msg.t === 'lobby' || msg.t === 'game') {
       if (typeof msg.id !== 'string' || msg.id.length > 64) {
         this.send(ws, { t: 'error', error: 'bad-message' });
@@ -317,7 +343,7 @@ export class GameRoom extends DurableObject<Env> {
     this.send(ws, { t: 'error', error: 'bad-message' });
   }
 
-  async webSocketClose(ws: WebSocket, code: number): Promise<void> {
+  async webSocketClose(ws: RoomSocket, code: number): Promise<void> {
     try {
       ws.close(code === 1005 || code === 1006 ? 1000 : code, 'closing');
     } catch {
@@ -326,11 +352,11 @@ export class GameRoom extends DurableObject<Env> {
     await this.onSocketGone(ws);
   }
 
-  async webSocketError(ws: WebSocket): Promise<void> {
+  async webSocketError(ws: RoomSocket): Promise<void> {
     await this.onSocketGone(ws);
   }
 
-  private async onSocketGone(ws: WebSocket): Promise<void> {
+  private async onSocketGone(ws: RoomSocket): Promise<void> {
     const att = (ws.deserializeAttachment() ?? { pid: null }) as SocketAttachment;
     if (!this.room || !att.pid) return;
     const member = this.room.members.find((m) => m.id === att.pid);
@@ -353,7 +379,7 @@ export class GameRoom extends DurableObject<Env> {
     // Close sockets that never authenticated.
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (ws.readyState === WebSocket.OPEN && att && !att.pid && now - att.at >= this.tm.authTimeout) {
+      if (ws.readyState === 1 && att && !att.pid && now - att.at >= this.tm.authTimeout) {
         try {
           ws.close(4001, 'auth timeout');
         } catch {
@@ -389,6 +415,12 @@ export class GameRoom extends DurableObject<Env> {
     this.syncTimers(now);
     const t = room.timers;
     const trade = game.turn.trade;
+
+    if (game.turn.pending?.type === 'thief' && now - (t.choiceAt ?? now) >= this.tm.choiceTimeout) {
+      systemResolveThief(game);
+      this.afterGameChange();
+      return true;
+    }
 
     if (trade) {
       if (now - t.tradeAt >= this.tm.tradeTimeout) {
@@ -464,6 +496,9 @@ export class GameRoom extends DurableObject<Env> {
     const game = this.game;
     if (!game) return;
     const tr = game.turn.trade;
+    const pending = game.turn.pending;
+    const choiceKey = pending ? `${pending.type}:${pending.targetId}` : null;
+    if (choiceKey !== room.timers.choiceKey) { room.timers.choiceKey = choiceKey; room.timers.choiceAt = now; }
     const tradeKey = tr ? `${tr.id}:${tr.round}` : null;
     if (tradeKey !== room.timers.tradeKey) {
       room.timers.tradeKey = tradeKey;
@@ -484,7 +519,7 @@ export class GameRoom extends DurableObject<Env> {
     const anyConnected = this.hasConnectedHumans();
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (ws.readyState === WebSocket.OPEN && att && !att.pid) times.push(att.at + this.tm.authTimeout);
+      if (ws.readyState === 1 && att && !att.pid) times.push(att.at + this.tm.authTimeout);
     }
     const host = room.members.find((m) => m.id === room.hostId);
     if (host?.disconnectedAt && room.members.some((m) => !m.isBot && m.id !== host.id && m.disconnectedAt === null && this.socketsFor(m.id).length > 0)) {
@@ -493,6 +528,7 @@ export class GameRoom extends DurableObject<Env> {
     const game = this.game;
     if (anyConnected && room.status === 'playing' && game && game.status === 'playing') {
       const tr = game.turn.trade;
+      if (game.turn.pending?.type === 'thief') times.push((room.timers.choiceAt ?? now) + this.tm.choiceTimeout);
       if (tr) {
         times.push(room.timers.tradeAt + this.tm.tradeTimeout);
         for (const pid of [tr.proposerId, tr.targetId]) {
@@ -540,6 +576,7 @@ export class GameRoom extends DurableObject<Env> {
     if (room.pausedAt == null) return false;
     const pausedFor = Math.max(0, now - room.pausedAt);
     if (room.timers.tradeAt > 0) room.timers.tradeAt += pausedFor;
+    if (room.timers.choiceAt) room.timers.choiceAt += pausedFor;
     if (room.timers.turnAt > 0) room.timers.turnAt += pausedFor;
     if (this.game?.turn.deadline) this.game.turn.deadline += pausedFor;
     for (const member of room.members) {
@@ -747,6 +784,23 @@ export class GameRoom extends DurableObject<Env> {
     this.syncTimers(Date.now());
     if (game.status === 'finished' && room.status === 'playing') {
       room.status = 'finished';
+      if (room.scoredGame !== room.gamesPlayed && game.result && game.result.reason !== 'aborted') {
+        room.tableScores ??= [];
+        for (const player of game.players) {
+          let score = room.tableScores.find(s => s.playerId === player.id);
+          if (!score) { score = { playerId: player.id, name: player.name, games: 0, wins: 0, packs: 0, streak: 0, bestStreak: 0 }; room.tableScores.push(score); }
+          const member = room.members.find(m => m.id === player.id);
+          score.name = member?.name ?? player.name;
+          score.avatar = member?.avatar;
+          score.games++;
+          const won = game.result.winnerIds.includes(player.id);
+          score.wins += won ? 1 : 0;
+          score.streak = won ? score.streak + 1 : 0;
+          score.bestStreak = Math.max(score.bestStreak, score.streak);
+          score.packs += game.result.standings.find(s => s.playerId === player.id)?.packs ?? 0;
+        }
+        room.scoredGame = room.gamesPlayed;
+      }
     }
   }
 
@@ -832,11 +886,7 @@ export class GameRoom extends DurableObject<Env> {
 
   private async persist(): Promise<void> {
     if (!this.room) return;
-    if (this.game) await this.ctx.storage.put({ room: this.room, game: this.game });
-    else {
-      await this.ctx.storage.put('room', this.room);
-      await this.ctx.storage.delete('game');
-    }
+    await this.ctx.storage.put({ room: this.room, game: this.game, acks: [...this.acks].map(([pid, entries]) => [pid, [...entries]]) });
   }
 
   /** Persist, push fresh snapshots to everyone and re-arm timers. */
@@ -864,10 +914,10 @@ export class GameRoom extends DurableObject<Env> {
     await this.ctx.storage.deleteAll();
   }
 
-  private socketsFor(pid: string, exclude?: WebSocket): WebSocket[] {
+  private socketsFor(pid: string, exclude?: RoomSocket): RoomSocket[] {
     return this.ctx.getWebSockets().filter((ws) => {
       if (ws === exclude) return false;
-      if (ws.readyState !== WebSocket.OPEN) return false;
+      if (ws.readyState !== 1) return false;
       const att = ws.deserializeAttachment() as SocketAttachment | null;
       return att?.pid === pid;
     });
@@ -899,6 +949,7 @@ export class GameRoom extends DurableObject<Env> {
       gamesPlayed: room.gamesPlayed,
       version: room.version,
       afkSkipSec: this.tm.afkSkip / 1000,
+      tableScores: room.tableScores ?? [],
     };
   }
 
@@ -906,14 +957,14 @@ export class GameRoom extends DurableObject<Env> {
     if (!this.room) return;
     for (const ws of this.ctx.getWebSockets()) {
       const att = ws.deserializeAttachment() as SocketAttachment | null;
-      if (!att?.pid || ws.readyState !== WebSocket.OPEN) continue;
+      if (!att?.pid || ws.readyState !== 1) continue;
       if (!this.room.members.some((m) => m.id === att.pid)) continue;
       const game = this.game ? projectGame(this.game, att.pid) : null;
       this.send(ws, { t: 'state', room: this.roomView(att.pid), game });
     }
   }
 
-  private send(ws: WebSocket, msg: ServerMessage): void {
+  private send(ws: RoomSocket, msg: ServerMessage): void {
     try {
       ws.send(JSON.stringify(msg));
     } catch {
@@ -932,7 +983,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   /** Token bucket per socket. Abusive sockets get closed. */
-  private allow(ws: WebSocket): boolean {
+  private allow(ws: RoomSocket): boolean {
     const now = Date.now();
     let b = this.buckets.get(ws);
     if (!b) {

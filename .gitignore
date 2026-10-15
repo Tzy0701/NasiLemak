@@ -4,7 +4,10 @@ dist
 .dev.vars
 *.log
 test-results
+test-results-*
 playwright-report
 .DS_Store
 coverage
+.room-data
+.env
 dist-test

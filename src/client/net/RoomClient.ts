@@ -1,6 +1,8 @@
 import type { GameAction } from '../../game/types';
 import type { GameView } from '../../game/view';
 import type { ClientMessage, LobbyOp, RoomView, ServerMessage } from '../../shared/protocol';
+import type { SocialEvent, SocialKind } from '../../shared/social';
+import { apiUrl } from './endpoint';
 
 export type ConnStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
@@ -11,6 +13,7 @@ export interface RoomSnapshot {
   /** Set when the server says our seat is gone (kicked/left/closed/bad token). */
   ended: null | 'kicked' | 'left' | 'room-closed' | 'bad-token';
   lastError: string | null;
+  social?: SocialEvent[];
 }
 
 interface PendingReq {
@@ -44,14 +47,15 @@ export class RoomClient {
   private disposed = false;
 
   constructor(
-    code: string,
+    private code: string,
     private token: string,
     private url: string = RoomClient.defaultUrl(code),
   ) {}
 
   static defaultUrl(code: string): string {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${proto}://${location.host}/api/rooms/${encodeURIComponent(code)}/ws`;
+    const url = new URL(apiUrl(`/api/rooms/${encodeURIComponent(code)}/ws`), location.origin);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    return url.toString();
   }
 
   start(): void {
@@ -100,6 +104,10 @@ export class RoomClient {
   game(action: GameAction): Promise<{ ok: boolean; error?: string }> {
     const turn = this.snap.game?.turn.number ?? -1;
     return this.request({ t: 'game', id: newId(), turn, action });
+  }
+
+  social(kind: SocialKind, preset: string, targetId?: string) {
+    return this.request({ t: 'social', id: newId(), kind, preset, targetId });
   }
 
   private wake = (): void => {
@@ -151,6 +159,11 @@ export class RoomClient {
       }
       this.set({ status: 'reconnecting' });
       this.scheduleReconnect();
+      if (this.retry === 1 || this.retry % 4 === 0) {
+        void fetch(apiUrl(`/api/rooms/${encodeURIComponent(this.code)}`), { signal: AbortSignal.timeout(90_000) })
+          .then(response => { if (response.status === 404 && this.ws?.readyState !== WebSocket.OPEN) { this.set({ ended: 'room-closed', status: 'closed' }); if (this.reconnectTimer) clearTimeout(this.reconnectTimer); } })
+          .catch(() => undefined);
+      }
     };
     ws.onerror = () => {
       /* onclose follows */
@@ -166,6 +179,9 @@ export class RoomClient {
 
   private onMessage(msg: ServerMessage): void {
     switch (msg.t) {
+      case 'social':
+        if (!(this.snap.social ?? []).some(e => e.id === msg.event.id)) this.set({ social: [...(this.snap.social ?? []), msg.event].slice(-12) });
+        break;
       case 'state': {
         const first = this.snap.status !== 'open';
         this.retry = 0;

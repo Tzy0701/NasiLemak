@@ -2,7 +2,9 @@
  * English strings. Add `zh.ts` / `ms.ts` with the same shape and register
  * them in ./index.ts to translate the whole UI.
  */
+import { extrasEn } from './extras';
 export const en = {
+  extras: extrasEn,
   design: {
     hand: 'Your hand · {n} cards',
     recipe: 'Nasi Lemak recipe',
@@ -13,7 +15,7 @@ export const en = {
     movesLabel: 'Moves left',
     effects: {
       supplier: 'Name one base ingredient. Take all of it from every opponent.',
-      thief: 'Take 1 random card from every opponent.',
+      thief: 'Choose 1 face-down card from every opponent.',
       wholesaler: 'Reveal 3 cards. Keep ingredients; discard the rest.',
       officer: 'Look at one opponent’s hand. Choose up to 2 cards.',
       makcik: 'Wrap with {n} different ingredients instead of 5.',
@@ -188,7 +190,7 @@ export const en = {
       local: 'Pembekal',
       text: 'Announce one ingredient (not Rendang). Every other player must give you ALL of that ingredient. If nobody has it, too bad — you cannot announce another.',
     },
-    thief: { name: 'Thief', local: 'Pencuri', text: 'Steal one random card from every other player.' },
+    thief: { name: 'Thief', local: 'Pencuri', text: 'Choose and steal one face-down card from every other player.' },
     wholesaler: {
       name: 'Wholesaler',
       local: 'Pemborong',
@@ -368,6 +370,10 @@ export const en = {
     skip: 'Skip animation',
   },
   errors: {
+    'server-full': 'The tables are busy. Please try creating a room later.',
+    'invalid-thief-choice': 'This choice has changed. Please choose from the current card backs.',
+    'social-rate-limited': 'Wait a moment before sending another reaction.',
+    'bad-request': 'That action is no longer available. Please try again.',
     'not-your-turn': "It's not your turn.",
     'no-moves-left': 'You have no moves left this turn.',
     'card-not-in-hand': "That card isn't in your hand anymore.",
@@ -414,7 +420,8 @@ export const en = {
     'crow-arrives': 'A Crow lands in front of {actor}!',
     supplier: '{actor} played Supplier and announced {ingredient} — received {n}.',
     'supplier-gave': '{actor} handed {n} {ingredient} to {target}.',
-    thief: '{actor} played Thief and stole a card from {n} player(s).',
+    thief: '{actor} played Thief and is choosing cards from {n} player(s).',
+    'thief-take': '{actor} stole one card from {target}.',
     'thief-private': '{actor} stole {kinds} from {target}.',
     wholesaler: '{actor} played Wholesaler and revealed {kinds} (kept {n}).',
     officer: '{actor} played Officer on {target}.',

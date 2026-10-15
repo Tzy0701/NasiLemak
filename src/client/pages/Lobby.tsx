@@ -15,6 +15,7 @@ import { CustomRulesEditor } from './CustomRulesEditor';
 import { useRoom } from './RoomPage';
 import { navigate } from '../router';
 import { LanguageButton } from '../ui/LanguageButton';
+import { RoomTools } from '../ui/RoomTools';
 
 const MODES: { id: GameMode; key: string; cfg?: GameConfig }[] = [
   { id: 'classic-base', key: 'modeBase', cfg: OFFICIAL_BASE },
@@ -67,6 +68,7 @@ export function Lobby() {
           </button>
           <div className="flex flex-wrap justify-center gap-2">
             <LanguageButton />
+            <RoomTools />
             <button className="btn-ghost btn-sm" onClick={() => setModal('how')}>
               {t('common.howToPlay')}
             </button>
@@ -99,7 +101,7 @@ export function Lobby() {
           <h2 className="mb-3 text-xl font-semibold">{t('lobby.players', { n })}</h2>
           <ul className="space-y-2">
             {room.members.map((m) => (
-              <li key={m.id} className="lobby-member flex min-w-0 flex-wrap items-center gap-3 rounded-2xl bg-santan-100 px-3 py-2" data-testid="member">
+              <li key={m.id} className="lobby-member flex min-w-0 flex-wrap items-center gap-3 rounded-2xl bg-santan-100 px-3 py-2" data-testid="member" data-player-id={m.id}>
                 <Avatar id={m.id} name={m.name} size={48} bot={m.isBot} avatar={m.avatar} />
                 <div className="lobby-member-info min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 truncate font-bold">

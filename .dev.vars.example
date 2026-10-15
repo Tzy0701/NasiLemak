@@ -1,4 +1,0 @@
-# Copy to .dev.vars for local overrides (never commit .dev.vars).
-# Comma-separated extra origins allowed to open game WebSockets
-# (same-origin is always allowed).
-ALLOWED_ORIGINS=

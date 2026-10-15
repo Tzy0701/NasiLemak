@@ -8,6 +8,7 @@ import type { CustomPresetId } from '../game/custom/customRules';
 import type { GameConfig, GameLength, GameMode } from '../game/rules/config';
 import type { GameAction } from '../game/types';
 import type { GameView } from '../game/view';
+import type { SocialEvent, SocialKind, TableScore } from './social';
 
 export const MAX_NAME_LENGTH = 20;
 export const MAX_ROOM_PLAYERS = 7;
@@ -43,7 +44,10 @@ export type ClientMessage =
   | { t: 'auth'; token: string }
   | { t: 'lobby'; id: string; body: LobbyOp }
   | { t: 'game'; id: string; turn: number; action: GameAction }
-  | { t: 'ping' };
+  | { t: 'ping' }
+  | SocialMessage;
+// Social messages are ephemeral and never consume a game move.
+export type SocialMessage = { t: 'social'; id: string; kind: SocialKind; preset: string; targetId?: string };
 
 export interface MemberView {
   /** Optional for rooms created before avatar selection. */
@@ -74,9 +78,11 @@ export interface RoomView {
   version: number;
   /** Seconds before an absent player's turn is skipped. */
   afkSkipSec: number;
+  tableScores?: TableScore[];
 }
 
 export type ServerMessage =
+  | { t: 'social'; event: SocialEvent }
   | { t: 'state'; room: RoomView; game: GameView | null }
   | { t: 'ack'; id: string; ok: boolean; error?: string }
   | { t: 'pong'; now: number }

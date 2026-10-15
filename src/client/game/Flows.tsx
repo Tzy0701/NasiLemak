@@ -387,6 +387,25 @@ export function OfficerTake({ info, act }: { info: TableInfo; act: Act }) {
 
 // ---------------------------------------------------------------------------
 
+export function ThiefTake({ info, act }: { info: TableInfo; act: Act }) {
+  const pending = info.v.turn.pending!;
+  const [busy, setBusy] = useState(false);
+  const targets = [...(pending.completed ?? []), pending.targetId, ...(pending.remaining ?? [])];
+  const last = info.v.log.findLast(entry => entry.key === 'thief-private' && entry.actor === info.v.youId && (pending.completed ?? []).includes(entry.target ?? ''));
+  return <Modal open required wide title={t('extras.thiefTitle', { name: info.name(pending.targetId) })} testId="thief-take">
+    <p>{t('extras.thiefHint')}</p>
+    <p className="mt-2 text-sm">{t('extras.thiefProgress', { done: pending.completed?.length ?? 0, left: (pending.remaining?.length ?? 0) + 1 })}</p>
+    <div className="thief-progress">{targets.map(id => <span key={id} className={(pending.completed ?? []).includes(id) ? 'done' : id === pending.targetId ? 'current' : ''}>{(pending.completed ?? []).includes(id) ? '✓ ' : ''}{info.name(id)}</span>)}</div>
+    {last?.kinds?.[0] && <div className="thief-reveal" data-testid="thief-reveal"><GameCard kind={last.kinds[0]} size="xs" /><p>{t('extras.stolen', { name: info.name(last.target), card: kindName(last.kinds[0]) })}</p></div>}
+    <div className="thief-choices">{(pending.choices ?? []).map((choiceId, index) => <button key={choiceId} disabled={busy} aria-label={t('extras.cardBack', { n: index + 1 })} data-testid="thief-card" onClick={async () => {
+      if (busy) return;
+      setBusy(true);
+      try { await act({ type: 'thiefTake', targetId: pending.targetId, choiceId }); } finally { setBusy(false); }
+    }}><GameCard kind="back" size="sm" /><span className="sr-only">{index + 1}</span></button>)}</div>
+    {busy && <p role="status">{t('extras.choosing')}</p>}
+  </Modal>;
+}
+
 const TRADE_KINDS: CardKind[] = [...BASE_INGREDIENTS, 'rendang', 'swatter', 'fan'];
 
 export function TradeComposer({
@@ -440,6 +459,7 @@ export function TradeComposer({
       }
     >
       <p className="mb-3 text-xs text-kopi-700">{t('trade.hint')}</p>
+      <section className="trade-summary" data-testid="trade-summary"><div><h4>{t('extras.youOffer')}</h4><p>{offer.length ? mine.filter(c => offer.includes(c.id)).map(c => kindName(c.kind)).join(' · ') : t('extras.chooseCards')}</p></div><div><h4>{t('extras.youRequest')}</h4>{Object.entries(want).filter(([, n]) => (n ?? 0) > 0).map(([kind, n]) => <p key={kind}>{kindName(kind as CardKind)} ×{n}</p>)}</div></section>
       {!fixedPartner && (
         <>
           <h3 className="mb-2 font-semibold">{t('trade.with')}</h3>
@@ -536,6 +556,7 @@ export function TradeResponse({ info, act, onCounter }: { info: TableInfo; act: 
               <div key={k} className="relative">
                 <GameCard kind={k} size="sm" />
                 <span className="absolute -right-2 -top-2 rounded-full bg-sambal-500 px-2 text-sm font-bold text-white">×{n}</span>
+                <span className="trade-missing" data-testid={`trade-availability-${k}`}>{info.v.hand.filter(c => c.kind === k).length < n ? t('extras.missing', { n: n - info.v.hand.filter(c => c.kind === k).length }) : t('extras.have', { n: info.v.hand.filter(c => c.kind === k).length })}</span>
               </div>
             ))}
           </div>

@@ -55,6 +55,7 @@ export function TableEffects({ event, v, reduced }: { event?: TableEvent; v: Gam
   const title = event.type === 'draw' ? t('animation.draw', { name: name(event.actor), n: event.count })
     : event.type === 'make' ? t('animation.make', { name: name(event.actor) })
     : event.type === 'crow' ? t(event.target ? 'animation.chase' : 'animation.crow', { name: name(event.actor) })
+    : event.type === 'steal' ? t('extras.stealAnimation', { name: name(event.target) })
     : event.type === 'trade' ? t('animation.trade')
     : event.type === 'reshuffle' ? t('animation.reshuffle')
     : t('animation.play', { name: name(event.actor), card: kindName(event.kind) });

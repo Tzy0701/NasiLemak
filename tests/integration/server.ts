@@ -6,10 +6,10 @@ export interface DevServer {
   stop: () => Promise<void>;
 }
 
-/** Start the real Worker (vite dev + Cloudflare plugin / workerd) with fast timers. */
+/** Start the real portable Node room server with isolated files and fast timers. */
 export async function startServer(port: number): Promise<DevServer> {
-  const env = { ...process.env, WRANGLER_CONFIG: 'tests/wrangler.test.jsonc', PERSIST_DIR: `.wrangler/state-test-${port}` };
-  const proc = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'dev', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
+  const env = { ...process.env, FAST_TIMERS: '1', ROOM_STORE_PATH: `.room-data/test-${port}`, HOST: '127.0.0.1' };
+  const proc = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'src/server/node/main.ts', '--port', String(port)], {
     cwd: process.cwd(),
     env,
     stdio: ['ignore', 'pipe', 'pipe'],

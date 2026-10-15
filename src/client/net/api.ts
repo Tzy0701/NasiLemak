@@ -1,6 +1,7 @@
 import type { CreateRoomResponse, JoinRoomResponse, RoomInfoResponse } from '../../shared/protocol';
 
 import { getPrefs } from '../prefs';
+import { apiUrl } from './endpoint';
 
 export class ApiError extends Error {
   constructor(public code: string) {
@@ -11,9 +12,10 @@ export class ApiError extends Error {
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(apiUrl(path), {
       ...init,
       headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+      signal: AbortSignal.timeout(90_000),
     });
   } catch {
     throw new ApiError('network');
