@@ -1,65 +1,41 @@
-# 完全免费部署与迁移
+# 继续使用 Cloudflare 免费版
 
-核对日期：2026-10-15。当前版本使用普通 Node.js + WebSocket 房间服务，前端为 React 静态文件；不需要 Cloudflare Durable Objects、D1 或任何付费数据库。
+核对日期：2026-10-15。默认使用 **Cloudflare Workers Static Assets + SQLite Durable Objects**，页面、图片、API 和联机房间都留在 Cloudflare。不需要 Render、D1 或另一家数据库。
 
-## 推荐：一个 Render Free 服务
+## 部署现有 Worker
 
-仓库根目录的 `render.yaml` 已固定 `plan: free`，同一个服务同时提供页面、图片和房间后端。无需先配置 Cloudflare，也无需单独购买域名。
+仓库：`Tzy0701/NasiLemak`；分支：`claude/nasi-lemak-online-game-k1qte5`。
 
-1. 使用你的 Render 账号连接 GitHub，选择 `Tzy0701/NasiLemak`，分支为 `claude/nasi-lemak-online-game-k1qte5`。
-2. 使用 Blueprint 导入根目录 `render.yaml`；也可以手动创建 **Web Service / Node / Free**。
-3. 构建命令：`npm ci --include=dev && npm run build`。
-4. 启动命令：`npm start`。健康检查：`/api/health`。端口使用平台提供的 `PORT`。
-5. 同域部署时 `ALLOWED_ORIGINS` 留空，`VITE_API_URL` 也留空。
-6. 使用 Render 分配的免费 `https://…onrender.com` 地址开房，分享新的房间链接。
+1. 在 Cloudflare 控制台确认使用 Workers Free，目标账号为 `a8265c7cf48c59f625939c3b1ab3f714`，Worker 为 `nasi-lemak-online`。不要升级付费方案。
+2. Workers 的 Git 构建设置使用上述分支，构建命令 `npm run build`，部署命令 `npx wrangler deploy --config wrangler.jsonc`。若平台要求安装命令，使用 `npm ci --include=dev`。
+3. 也可以在本地执行 `npx wrangler login`，再执行 `npm run check:deploy` 和 `npm run deploy`。前者只检查构建和打包，后者才发布。
+4. `VITE_API_URL` 保持为空；页面和 API 同域。生产环境不要配置 `FAST_TIMERS`。额外域名可在 Worker 的 Domains & Routes 配置。
+5. 上线后检查 `/api/health` 返回 `backend: "cloudflare"`，并用两名玩家实际开房、选牌、断线重连和完成对局。提交代码或本地测试通过都不能代替上线验证。
 
-Render 连接可用于检查部署和配置；首次连接服务与 GitHub 仓库的授权需要由账号持有人完成。仓库中的部署配置不代表服务已经上线。
+配置保留原 Worker 名、`ROOMS` 绑定、`GameRoom` 类和 `v1` SQLite 迁移，不创建替代存储，也不删除旧房间。更新时保留现有账号和域名；不要新建另一个同名 Worker 来绕过账号授权问题。新版本可读取旧房间的可选字段，表情贴纸、小偷选牌等新增功能也保留。
 
-## 免费边界
+一个 Worker 即可完成部署。Cloudflare Pages 只能独立托管静态前端；多人房间仍需要后端。仅搬到 Pages 不会取消 Durable Objects 的用量或额度，因此本项目不需要额外拆分 Pages。
 
-- Render Free 在 15 分钟没有入站 HTTP 或 WebSocket 消息后休眠，下一次连接通常需要约一分钟唤醒。
-- 平台重启、休眠或重新部署会丢失临时文件。**房间、进行中的手牌、待选小偷和本桌战绩可能随之消失，需要重新开局。** 不提供永久存档承诺。
-- 游戏自身在全体真人离线后暂停，最多保留 30 分钟；平台休眠或重启可能让这段时间提前结束。服务器仍在线且文件保留时，短暂断线、刷新和普通进程重启可以恢复原座位、手牌和待选项。
-- 每个工作区每月共享 750 个免费实例小时，另有带宽和构建额度。不要为本项目附加付费磁盘、数据库、额外实例或付费套餐。
-- 为严格保持零费用，使用没有付款方式的免费工作区；官方文档说明，相关额度耗尽时将暂停服务或构建。已有付款方式的工作区可能对额外带宽或构建收费，应先检查其计费设置，不能仅凭 `plan: free` 就承诺账号账单为零。
-- 不设置自动保活或周期性唤醒任务；游戏无人时允许服务休眠。
+## 免费额度和修复范围
 
-来源：[Render Free](https://render.com/docs/free)、[Render WebSocket](https://render.com/docs/websocket)。这些是托管平台规则，不是本地测试能够验证的上线结果。
+根据 [Durable Objects 官方计费说明](https://developers.cloudflare.com/durable-objects/platform/pricing/)，Free 计划当前包括每日 100,000 个计费请求、13,000 GB-s 运行时长、500 万行读取、100,000 行写入和总计 5 GB 存储。HTTP/RPC、定时唤醒和传入 WebSocket 消息都可能计入请求；传入 WebSocket 消息按官方 20:1 比率折算。用量图里的原始事件数不一定等于计费请求数。
 
-## 可选：Cloudflare Pages 托管静态前端
+超过免费限额会返回错误，日额度在 UTC 00:00 重置（马来西亚 08:00）。Workers 自身也有[免费计划限制](https://developers.cloudflare.com/workers/platform/limits/)。不承诺免费无限使用，不自动开通付费方案。
 
-前端可以单独使用 Pages Free，让图片由其分发；房间服务仍使用上述 Render Free 服务。
+本版本降低浪费的措施：
 
-1. Pages 的构建命令用 `npm ci --include=dev && npm run build`，输出目录 `dist/client`，无需 Pages Functions 或 DO 绑定。
-2. Pages 构建环境设置 `VITE_API_URL=https://你的后端.onrender.com`，值仅为后端网址，不包含 `/api`；这是公开地址，不是密钥。
-3. Render 服务设置 `ALLOWED_ORIGINS=https://你的前端.pages.dev`。多个来源以逗号分隔，必须填写准确来源，不包含路径。
-4. `public/_redirects` 会让 `/r/房间号` 返回应用。二维码与邀请链接会使用当前前端网址。
-5. 换后端地址后需要重新构建前端。原 Cloudflare Worker 的正在进行房间不会自动迁移到 Node.js，新入口需要重新开房。
+- 最后一位真人断线后暂停机器人、出牌、交易和选牌计时，保留 30 分钟返回窗口；空房间只安排认证清理或最终到期清理。
+- 没有在线接任者时不安排已经过期的房主转移计时，避免反复立即唤醒。
+- 后台自动行动不延长真人活跃时间。
+- 使用 [WebSocket Hibernation](https://developers.cloudflare.com/durable-objects/best-practices/websockets/)，心跳自动回复，不唤醒房间处理。自动回复节省运行时长，不代表所有传入消息都不计量。
+- 正常休眠唤醒只读取保存状态，不重写状态或重置已有定时器。
+- 表情和固定短句不写入游戏存储；限流与最近去重确认保存在可跨休眠保留的连接附件中，并按玩家合并多个页面的频率。
+- 开房前过滤无效输入，接口和 WebSocket 均限流；日志设置为 10% 采样。日志采样只减少日志量，不减少实际请求。
 
-来源：[Pages Free 限制](https://developers.cloudflare.com/pages/platform/limits/)。仅使用静态托管；本项目未部署 Pages Functions。
+之前发现并修复的空房间计时循环是代码层面的确认结果。过去超限那一天的请求来源、旧版本是否已修复以及每类请求比例，仍需正确账号下的线上日志确认，不能从本地测试反推。
 
-## 本地运行与存储
+## 账号读取与上线状态
 
-```sh
-npm ci
-npm run dev
-```
+此前工具可访问的账号与控制台链接中的账号 ID 不同，对目标账号返回 Authentication error。相同邮箱可以涉及不同账号；需要目标账号的读取／部署权限。遇到此错误应核对授权范围，不要把配置改成另一个账号。
 
-开发界面在 `http://localhost:5173`，代理到本机 `8790` 的房间服务。
-
-```sh
-npm run build
-npm start
-```
-
-生产构建本地在 `http://localhost:8790`。房间默认存于 `.room-data`，每个房间一个原子替换的 JSON 文件；包含服务器私有手牌与 token 哈希，不应放到静态目录、上传 Git 或公开分享。`ROOM_STORE_PATH` 可指定目录，`:memory:` 则仅在内存保存。
-
-本实现使用单个进程，每个房间串行处理消息，只有一个下一事件计时器。无需数据库计量，也不代表资源无限；默认同时最多 300 个保留房间，并有连接数、请求大小和消息频率限制。
-
-## 上线核对与回退
-
-1. 新地址的 `/api/health` 应显示 `backend: node`。
-2. 用两台实际设备进入同一新房间，验证开局、中文、表情、背面选牌、刷新与重连。
-3. 在新局运行时观察 Render 日志与资源；旧 Worker 的日志不能用来判断新服务请求。
-4. 先让旧局结束，再决定是否停用旧 Worker。删除或修改 Cloudflare 资源不属于本地迁移脚本的行为。
-5. Render 回退代码也会重启实例，免费服务上的房间可能丢失；先通知正在游玩的朋友。
+本地 Worker 测试和打包不需要 Cloudflare 登录。部署与线上验证需要账号权限；本文件不表示已经发布新版本，也不表示已经读到此前的线上请求明细。

@@ -1,6 +1,6 @@
 # Nasi Lemak Online
 
-A private multiplayer adaptation of Nasi Lemak: The Game and The Rendang Expansion, with a Chinese/English illustrated tabletop, 24 avatars and a portable Node.js room server.
+A private multiplayer adaptation of Nasi Lemak: The Game and The Rendang Expansion, with a Chinese/English illustrated tabletop, 24 avatars and Cloudflare Workers + SQLite Durable Objects.
 
 ## Play and social features
 
@@ -23,20 +23,20 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173` (Vite frontend; Node backend at port 8790).
+Open `http://localhost:5173` (Vite frontend; local Cloudflare room backend at port 8790). Local development does not require signing into Cloudflare.
 
 ```sh
 npm run build
 npm start
 ```
 
-This serves the production frontend and room API together at `http://localhost:8790`. No Cloudflare account, DO or D1 is required.
+This serves the built frontend and room API together in the local Workers runtime at `http://localhost:8790`.
 
 ## Free hosting
 
-See [完全免费部署与迁移](docs/FREE-HOSTING.md). Root `render.yaml` selects a **Render Free** Node service, serving frontend and backend together. The static frontend can alternatively use Cloudflare Pages with `VITE_API_URL` pointing to the Node service and the frontend origin allowed on the server.
+See [Cloudflare 免费部署](docs/FREE-HOSTING.md). The default is one Cloudflare Worker serving static assets and the room API, with one SQLite-backed Durable Object per room. No Render, D1 or separate database is required.
 
-Free does not mean permanent storage or unlimited resources: Render may sleep after 15 idle minutes and its files are lost on sleep, restart or redeploy. Rooms and table records can disappear. The software's 30-minute reconnect window applies only while the server and its files survive. For strict zero cost, check the account's payment and usage settings as described in the deployment guide. Do not add paid resources.
+The Free plan still has daily request, duration and storage limits. Stay on Workers Free; do not enable paid resources. WebSocket hibernation and automatic heartbeat replies reduce idle work. Empty rooms pause and expire after 30 minutes instead of continuously firing timers. The original Worker name, `ROOMS` binding, `GameRoom` class and `v1` SQLite migration are preserved for compatibility with existing room storage.
 
 ## Verification
 
@@ -44,24 +44,27 @@ Free does not mean permanent storage or unlimited resources: Render may sleep af
 npm run typecheck
 npm run test:unit
 npm run test:integration
+npm run test:cloudflare
 npm run test:e2e
+npm run check:deploy
 npm run simulate
 ```
 
-Unit tests cover complete rules, private views, manual Thief and fuzzed full games. Integration tests start a real Node server and separate WebSocket players, including reconnect, saved choice handles, rematches and reaction limits. Playwright tests use the built application on desktop and phone widths. Local/browser results are not proof of deployment or two physical devices across networks.
+Unit tests cover complete rules, private views, manual Thief, fuzzed full games and hibernation. Integration tests use real WebSocket players on either the optional Node test host or the local Workers/SQLite runtime. Playwright now uses the built application on the Cloudflare runtime at desktop and phone widths. Local/browser results are not proof of deployment or two physical devices across networks.
 
 ## Architecture and configuration
 
 - `src/game`: platform-independent rules, bots and seat-scoped `projectGame()` privacy boundary.
 - `src/server/rooms/GameRoom.ts`: room lifecycle, authentication, private broadcasts, social validation and game timers.
-- `src/server/node`: HTTP/WebSocket host, one serial queue and one timer per room, atomic file replacement.
+- `src/server/cloudflare`: Worker API, original Durable Object binding and hibernating WebSocket adapter.
+- `src/server/node`: optional local test host, one serial queue and one timer per room, atomic file replacement.
 - `src/client`: React tabletop, translated UI, artwork, device preferences and resilient network client.
 - `src/shared`: shared protocol and preset reaction catalog.
 - `public/art/heritage-v1`: original cards/backgrounds, 24 avatars and generated sticker atlas.
 
-`PORT`, `HOST`, `ROOM_STORE_PATH` and `ALLOWED_ORIGINS` configure the server. `VITE_API_URL` configures a separate backend at frontend build time. Empty values use same-origin requests. `FAST_TIMERS=1` is only for tests; never enable it in production.
+`wrangler.jsonc` targets the existing `nasi-lemak-online` Worker and account. Build with `npm run build`, check with `npm run check:deploy`, and publish with `npm run deploy` after authenticating to that account. Keep `VITE_API_URL` empty for this same-origin deployment. `FAST_TIMERS=1` is only for tests; never enable it in production.
 
-Local room files default to `.room-data` and must stay private. Setting `ROOM_STORE_PATH=:memory:` disables file storage. Files preserve process restart state only when the hosting platform preserves that directory. This single-process implementation must not be scaled to independent replicas without shared room routing/state.
+The optional Node adapter remains for local regression testing (`npm run build:node`, then `node dist/server/index.mjs`); its private `.room-data` files are unrelated to Cloudflare's persistent storage. It is not required for deployment.
 
 When every human disconnects, turns, bots, trades and choice timers pause. A returning player resumes the same seat and remaining timers while the room exists. If another human is still online, ordinary AFK and host-transfer handling continue. Background actions never extend the last human activity time. Explicitly leaving as the last human closes the room.
 

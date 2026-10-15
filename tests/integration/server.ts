@@ -6,10 +6,13 @@ export interface DevServer {
   stop: () => Promise<void>;
 }
 
-/** Start the real portable Node room server with isolated files and fast timers. */
-export async function startServer(port: number): Promise<DevServer> {
+/** Real network tests can run against either host, with isolated persistent state. */
+export async function startServer(port: number, backend = process.env.TEST_BACKEND ?? 'node'): Promise<DevServer> {
   const env = { ...process.env, FAST_TIMERS: '1', ROOM_STORE_PATH: `.room-data/test-${port}`, HOST: '127.0.0.1' };
-  const proc = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'src/server/node/main.ts', '--port', String(port)], {
+  const args = backend === 'cloudflare'
+    ? ['node_modules/wrangler/bin/wrangler.js', 'dev', '--config', 'tests/wrangler.test.jsonc', '--local', '--port', String(port), '--persist-to', `.wrangler/test-${port}`]
+    : ['node_modules/tsx/dist/cli.mjs', 'src/server/node/main.ts', '--port', String(port)];
+  const proc = spawn(process.execPath, args, {
     cwd: process.cwd(),
     env,
     stdio: ['ignore', 'pipe', 'pipe'],

@@ -104,6 +104,8 @@ interface RoomRecord {
 interface SocketAttachment {
   pid: string | null;
   at: number;
+  socialAt?: number;
+  socialAcks?: [string, ServerMessage][];
 }
 
 interface Bucket {
@@ -121,7 +123,6 @@ export class GameRoom {
   private game: GameState | null = null;
   private buckets = new WeakMap<RoomSocket, Bucket>();
   private acks = new Map<string, Map<string, ServerMessage>>();
-  private socialAt = new Map<string, number>();
   private tm: typeof TIMINGS;
 
   constructor(private ctx: RoomContext, env: RoomEnv) {
@@ -132,6 +133,7 @@ export class GameRoom {
       const savedAcks = await ctx.storage.get<[string, [string, ServerMessage][]][]>('acks');
       if (savedAcks) this.acks = new Map(savedAcks.map(([pid, entries]) => [pid, new Map(entries)]));
       if (this.room) {
+        let changed = false;
         // A runtime restart may lose sockets without delivering close events.
         // Use the last known activity/disconnection as a conservative pause
         // boundary, including rooms persisted before pausedAt existed.
@@ -139,11 +141,13 @@ export class GameRoom {
         for (const member of this.room.members) {
           if (!member.isBot && member.disconnectedAt === null && this.socketsFor(member.id).length === 0) {
             member.disconnectedAt = this.room.pausedAt ?? disconnectedAt;
+            changed = true;
           }
         }
-        if (!this.hasConnectedHumans() && this.room.pausedAt == null) this.room.pausedAt = disconnectedAt;
-        await this.persist();
-        await this.scheduleAlarm();
+        if (!this.hasConnectedHumans() && this.room.pausedAt == null) { this.room.pausedAt = disconnectedAt; changed = true; }
+        // Hibernation retains sockets and alarms. Merely waking the object must
+        // not rewrite its saved state or replace an alarm that is about to run.
+        if (changed) await this.persist();
       }
     });
   }
@@ -284,15 +288,20 @@ export class GameRoom {
 
     if (msg.t === 'social') {
       if (typeof msg.id !== 'string' || msg.id.length > 64) return;
-      const prior = this.acks.get(member.id)?.get(msg.id);
+      const sessions = this.socketsFor(member.id).map(socket => ({ socket, attachment: socket.deserializeAttachment() as SocketAttachment }));
+      const prior = this.acks.get(member.id)?.get(msg.id) ?? sessions.flatMap(s => s.attachment.socialAcks ?? []).find(([id]) => id === msg.id)?.[1];
       if (prior) { this.send(ws, prior); return; }
       const valid = msg.kind === 'sticker' ? (STICKERS as readonly string[]).includes(msg.preset) : msg.kind === 'phrase' && (PHRASES as readonly string[]).includes(msg.preset);
       const target = msg.targetId ?? member.id;
-      const error = !valid || !this.room.members.some(m => m.id === target) ? 'bad-request' : Date.now() - (this.socialAt.get(member.id) ?? 0) < 2_000 ? 'social-rate-limited' : null;
+      const lastSocial = Math.max(0, ...sessions.map(s => s.attachment.socialAt ?? 0));
+      const error = !valid || !this.room.members.some(m => m.id === target) ? 'bad-request' : Date.now() - lastSocial < 2_000 ? 'social-rate-limited' : null;
       const ack: ServerMessage = error ? { t: 'ack', id: msg.id, ok: false, error } : { t: 'ack', id: msg.id, ok: true };
       this.remember(member.id, msg.id, ack);
+      // Attachments survive Cloudflare hibernation, unlike instance fields.
+      // Share the cooldown across this player's tabs without database writes.
+      const socialAcks = [...sessions.flatMap(s => s.attachment.socialAcks ?? []), [msg.id, ack] as [string, ServerMessage]].slice(-16);
+      for (const { socket, attachment } of sessions) socket.serializeAttachment({ ...attachment, socialAcks, socialAt: error ? lastSocial : Date.now() } satisfies SocketAttachment);
       if (!error) {
-        this.socialAt.set(member.id, Date.now());
         const event: SocialEvent = { id: randomId(), senderId: member.id, targetId: target, kind: msg.kind, preset: msg.preset, at: Date.now() };
         for (const socket of this.ctx.getWebSockets()) {
           const attachment = socket.deserializeAttachment() as SocketAttachment | null;

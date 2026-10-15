@@ -12,7 +12,7 @@ declare module 'vitest' {
 export async function setup(project: TestProject) {
   let url = process.env.BASE_URL;
   if (!url) {
-    server = await startServer(8791);
+    server = await startServer(8791, project.config.env?.TEST_BACKEND ?? 'node');
     url = server.url;
   }
   project.provide('baseUrl', url);

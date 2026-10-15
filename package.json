@@ -3,18 +3,22 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Private Nasi Lemak multiplayer game: portable Node.js rooms, React frontend and free hosting configuration.",
+  "description": "Private Nasi Lemak multiplayer game with Cloudflare Workers, hibernating Durable Objects and an illustrated React tabletop.",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "tsc -b && vite build && esbuild src/server/node/main.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server/index.mjs",
-    "preview": "npm start",
+    "dev": "npm run build && node scripts/dev.mjs",
+    "build": "tsc -b && vite build",
+    "build:node": "npm run build && esbuild src/server/node/main.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server/index.mjs",
+    "preview": "wrangler dev --config wrangler.jsonc --local --port 8790",
+    "deploy": "npm run build && wrangler deploy --config wrangler.jsonc",
+    "check:deploy": "npm run build && wrangler deploy --config wrangler.jsonc --dry-run",
     "typecheck": "tsc -b",
-    "test": "vitest run && vitest run -c vitest.integration.config.ts",
+    "test": "npm run test:unit && npm run test:cloudflare",
     "test:unit": "vitest run",
     "test:integration": "vitest run -c vitest.integration.config.ts",
+    "test:cloudflare": "npm run build && vitest run -c vitest.cloudflare.config.ts",
     "test:e2e": "playwright test",
     "simulate": "tsx scripts/simulate.ts",
-    "start": "node dist/server/index.mjs"
+    "start": "npm run preview"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
@@ -23,6 +27,7 @@
     "ws": "^8.22.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261015.1",
     "@playwright/test": "1.56.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "22.20.5",
@@ -36,6 +41,7 @@
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "8.3.4",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "wrangler": "4.151.0"
   }
 }

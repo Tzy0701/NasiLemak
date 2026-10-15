@@ -17,9 +17,8 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        // Production Node build, isolated test state and shortened timers.
-        command: `npm run build && node dist/server/index.mjs --port ${PORT}`,
-        env: { FAST_TIMERS: '1', ROOM_STORE_PATH: '.room-data/e2e', HOST: '127.0.0.1' },
+        // Built frontend on the actual local Workers/SQLite DO runtime.
+        command: `npm run build && wrangler dev --config tests/wrangler.test.jsonc --local --port ${PORT} --persist-to .wrangler/e2e-${PORT}`,
         url: `http://127.0.0.1:${PORT}/api/health`,
         reuseExistingServer: false,
         timeout: 240_000,

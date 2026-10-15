@@ -136,7 +136,9 @@ export async function takeSimpleTurn(page: Page): Promise<'made' | 'played' | 'e
           for (let victim = 0; victim < 6 && await dialog.isVisible(); victim++) {
             const title = await dialog.getByRole('heading').first().textContent();
             await page.getByTestId('thief-card').first().click();
-            await expect.poll(async () => await dialog.isVisible() ? dialog.getByRole('heading').first().textContent() : '').not.toBe(title);
+            // Read atomically: the last pick can unmount the dialog between an
+            // isVisible() check and a textContent() call that would then wait.
+            await expect.poll(() => dialog.getByRole('heading').evaluateAll(nodes => nodes[0]?.textContent ?? '')).not.toBe(title);
           }
           await expect(dialog).toBeHidden();
         }

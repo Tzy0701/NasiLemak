@@ -46,6 +46,9 @@ export class RoomHost {
       getWebSockets: () => [...this.sockets], acceptWebSocket: socket => { this.sockets.add(socket); },
     };
     this.room = new GameRoom(ctx, env);
+    // A process restart loses all sockets, unlike Cloudflare hibernation.
+    // Reconcile deadlines after loading, outside the shared constructor.
+    this.initialized = this.initialized.then(() => this.room.alarm());
     this.arm();
   }
   run<T>(callback: (room: GameRoom) => Promise<T>): Promise<T> {
